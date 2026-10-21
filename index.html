@@ -1,0 +1,2734 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Apex — Productivity OS</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Figtree:wght@300;400;500;600;700&family=Space+Mono:wght@400;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/dist/tabler-icons.min.css">
+<style>
+:root{
+  --g:#00E6A8;--gb:#C8FF6B;--bd:#141417;--bdk:#09090B;--bdm:#0F0F12;
+  --w:#FFFFFF;--sky:#4DA3FF;--org:#F5B83D;--red:#F5484B;--sp:#2DD4BF;--ink:#0A0A0C;
+  --t1:rgba(255,255,255,0.92);--t2:rgba(255,255,255,0.58);--t3:rgba(255,255,255,0.4);--t4:rgba(255,255,255,0.08);
+  --br:14px;--brl:20px;
+  /* restrained flat-UI accent palette, used for category/status pills */
+  --mc-purple:#A25DDC;--mc-blue:#4DA3FF;--mc-pink:#F0529C;--mc-tangerine:#F5B83D;
+  --mc-red:#F5484B;--mc-green:#00E6A8;--mc-yellow:#F5C945;--mc-grey:#8A8A94;
+  --shadow-card:0 4px 20px rgba(0,0,0,0.5);
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+html,body{height:100%;font-family:'Figtree','Segoe UI',sans-serif;background:var(--bdk);color:var(--t1);overflow:hidden;}
+a{color:var(--g);text-decoration:none;}
+
+/* ── LAYOUT ── */
+#app{display:grid;grid-template-rows:52px 1fr;grid-template-columns:220px 1fr;height:100vh;}
+#topbar{grid-column:1/-1;background:var(--bdm);border-bottom:1px solid var(--t4);display:flex;align-items:center;padding:0 1.25rem;gap:12px;z-index:50;}
+#sidebar{background:var(--bdm);border-right:1px solid var(--t4);overflow-y:auto;display:flex;flex-direction:column;padding:1rem 0 1.5rem;}
+#content{overflow-y:auto;padding:1.5rem;}
+
+/* ── TOPBAR ── */
+.tb-brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;letter-spacing:-0.02em;margin-right:auto;}
+.tb-dot{width:9px;height:9px;border-radius:50%;background:var(--g);}
+.tb-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:0.08em;}
+.tb-sprint{font-family:'Space Mono',monospace;font-size:10px;color:var(--g);background:rgba(0,230,168,0.1);border:1px solid rgba(0,230,168,0.25);border-radius:4px;padding:3px 9px;}
+.tb-btn{font-size:12px;background:rgba(255,255,255,0.05);border:1px solid var(--t4);border-radius:8px;color:var(--t2);padding:5px 12px;cursor:pointer;transition:all 0.15s;font-family:'Figtree',sans-serif;}
+.tb-btn:hover{background:rgba(255,255,255,0.09);color:var(--t1);}
+.tb-btn.primary{background:var(--g);border-color:var(--g);color:#0A0A0C;font-weight:600;border-radius:999px;padding:5px 14px;}
+.tb-btn.primary:hover{background:var(--gb);border-color:var(--gb);}
+
+/* ── SIDEBAR ── */
+.sb-section{margin-bottom:1.5rem;}
+.sb-label{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--t3);padding:0 1rem;margin-bottom:5px;}
+.sb-item{display:flex;align-items:center;gap:9px;margin:0 0.6rem;padding:7px 0.75rem;font-size:13px;color:var(--t2);cursor:pointer;transition:all 0.15s;border-radius:9px;user-select:none;}
+.sb-item:hover{background:rgba(255,255,255,0.05);color:var(--t1);}
+.sb-item.active{background:rgba(255,255,255,0.07);color:#fff;font-weight:600;box-shadow:inset 3px 0 0 var(--g);}
+.sb-item.active i{color:var(--g);}
+.sb-item.active .sb-count{background:rgba(0,230,168,0.16);color:var(--g);}
+.sb-item i{font-size:15px;flex-shrink:0;color:var(--t3);transition:color 0.15s;}
+.sb-item .sb-count{margin-left:auto;font-family:'Space Mono',monospace;font-size:9px;background:rgba(0,230,168,0.12);color:var(--g);border-radius:4px;padding:2px 6px;}
+.sb-divider{height:1px;background:var(--t4);margin:0.5rem 1rem 1rem;}
+.sb-sprint-box{margin:auto 1rem 0;background:var(--bd);border:1px solid rgba(0,230,168,0.15);border-radius:var(--br);padding:0.75rem;}
+.sb-sprint-label{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:var(--t3);margin-bottom:6px;}
+.sb-sprint-title{font-size:12px;font-weight:600;color:var(--t1);margin-bottom:8px;}
+.bar-track{height:4px;background:rgba(255,255,255,0.07);border-radius:999px;overflow:hidden;}
+.bar-fill{height:100%;background:linear-gradient(90deg,var(--g),var(--gb));border-radius:999px;transition:width 0.5s;}
+.sb-sprint-meta{display:flex;justify-content:space-between;margin-top:5px;font-size:10px;color:var(--t3);}
+.sb-sprint-pct{font-family:'Space Mono',monospace;color:var(--g);}
+
+/* ── PANELS & CARDS ── */
+.page{display:none;}.page.active{display:block;}
+.page-title{font-size:20px;font-weight:300;letter-spacing:-0.02em;margin-bottom:4px;}
+.page-title strong{font-weight:700;color:var(--g);}
+.page-sub{font-size:13px;color:var(--t3);margin-bottom:1.5rem;}
+.card{background:var(--bd);border:1px solid var(--t4);border-radius:var(--brl);padding:1.5rem;box-shadow:var(--shadow-card);}
+.card-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.1rem;}
+.card-title{font-size:13px;font-weight:600;color:var(--t1);display:flex;align-items:center;gap:9px;}
+.card-title i{font-size:14px;color:var(--g);background:rgba(0,230,168,0.14);width:26px;height:26px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;flex-shrink:0;}
+.badge{font-family:'Space Mono',monospace;font-size:9px;font-weight:700;border-radius:999px;padding:3px 10px;white-space:nowrap;}
+.badge-g{background:var(--g);color:#0A0A0C;}
+.badge-o{background:var(--org);color:#0A0A0C;}
+.badge-r{background:var(--red);color:#0A0A0C;}
+.badge-s{background:var(--sky);color:#0A0A0C;}
+.badge-w{background:rgba(255,255,255,0.14);color:var(--t1);}
+.pill-chip{display:inline-block;font-family:'Space Mono',monospace;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;padding:3px 10px;border-radius:999px;white-space:nowrap;}
+.icon-btn{background:none;border:1px solid var(--t4);border-radius:8px;color:var(--t3);padding:4px 8px;cursor:pointer;font-size:12px;transition:all 0.15s;display:flex;align-items:center;gap:4px;font-family:'Figtree',sans-serif;}
+.icon-btn:hover{border-color:rgba(0,230,168,0.3);color:var(--g);}
+.icon-btn i{font-size:13px;}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-bottom:14px;}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:14px;}
+
+/* ── STAT CARDS ── */
+.stat-card{background:var(--bd);border:1px solid var(--t4);border-radius:var(--br);padding:1rem 1.1rem;box-shadow:var(--shadow-card);}
+.stat-card .sn{font-family:'Space Mono',monospace;font-size:24px;font-weight:700;color:var(--g);line-height:1;}
+.stat-card .sl{font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:0.07em;margin-top:4px;}
+.stat-card .st{font-size:11px;color:var(--gb);margin-top:3px;}
+
+/* ── PROGRESS RINGS ── */
+.ring-wrap{position:relative;display:inline-flex;align-items:center;justify-content:center;}
+.ring-label{position:absolute;text-align:center;}
+.ring-pct{font-family:'Space Mono',monospace;font-weight:700;color:var(--g);}
+
+/* ── OKR ── */
+.okr-card{background:var(--bd);border:1px solid var(--t4);border-radius:var(--brl);overflow:hidden;margin-bottom:14px;transition:border-color 0.2s;box-shadow:var(--shadow-card);}
+.okr-card:hover{border-color:rgba(0,230,168,0.25);}
+.okr-header{padding:1.1rem 1.25rem 0.85rem;border-bottom:1px solid var(--t4);display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
+.okr-color-bar{width:5px;border-radius:999px;flex-shrink:0;align-self:stretch;min-height:36px;}
+.okr-header-content{flex:1;}
+.okr-category{margin-bottom:6px;}
+.okr-objective{font-size:14px;font-weight:600;color:var(--t1);margin-bottom:6px;line-height:1.4;}
+.okr-meta{display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.okr-progress-bar{flex:1;max-width:160px;}
+.okr-pct-text{font-family:'Space Mono',monospace;font-size:11px;color:var(--g);}
+.okr-actions{display:flex;gap:6px;flex-shrink:0;}
+.okr-body{padding:0.75rem 1.25rem 1rem;}
+.kr-row{display:flex;align-items:center;gap:10px;padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.kr-row:last-child{border-bottom:none;}
+.kr-num{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);width:18px;flex-shrink:0;}
+.kr-text{font-size:12px;color:var(--t2);flex:1;line-height:1.4;}
+.kr-bar-wrap{width:80px;flex-shrink:0;}
+.kr-pct{font-family:'Space Mono',monospace;font-size:10px;width:30px;text-align:right;flex-shrink:0;}
+.kr-edit-btn{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px;border-radius:4px;transition:color 0.15s;font-size:13px;}
+.kr-edit-btn:hover{color:var(--g);}
+
+/* ── TIME BLOCKS ── */
+.tb-day-grid{display:grid;grid-template-columns:50px 1fr;gap:0;}
+.tb-hour-label{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);text-align:right;padding-right:10px;height:48px;display:flex;align-items:flex-start;padding-top:2px;}
+.tb-block{border-radius:10px;margin-bottom:3px;padding:6px 10px;cursor:pointer;transition:all 0.15s;position:relative;min-height:44px;}
+.tb-block:hover{filter:brightness(1.15);}
+.tb-block.deep{background:rgba(0,230,168,0.12);border-left:3px solid var(--g);}
+.tb-block.shallow{background:rgba(77,163,255,0.1);border-left:3px solid rgba(77,163,255,0.35);}
+.tb-block.break{background:rgba(255,255,255,0.04);border-left:3px solid rgba(255,255,255,0.1);}
+.tb-block.personal{background:rgba(200,255,107,0.08);border-left:3px solid var(--gb);}
+.tb-block-time{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:2px;}
+.tb-block-title{font-size:12px;font-weight:500;}
+.tb-block.deep .tb-block-title{color:var(--g);}
+.tb-block.shallow .tb-block-title{color:var(--sky);}
+.tb-block.break .tb-block-title{color:var(--t3);}
+.tb-block.personal .tb-block-title{color:var(--gb);}
+.tb-block-tag{font-size:9px;margin-top:2px;color:var(--t3);}
+
+/* ── TASK LIST ── */
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);cursor:pointer;transition:background 0.12s;border-radius:10px;padding:8px 8px;}
+.task-item:hover{background:rgba(255,255,255,0.03);}
+.task-item:last-child{border-bottom:none;}
+.task-cb{width:16px;height:16px;border-radius:4px;border:1.5px solid rgba(255,255,255,0.2);flex-shrink:0;margin-top:1px;display:flex;align-items:center;justify-content:center;transition:all 0.2s;}
+.task-cb.done{background:var(--g);border-color:var(--g);}
+.task-cb.done::after{content:'';display:block;width:4px;height:7px;border:1.5px solid #0A0A0C;border-top:none;border-left:none;transform:rotate(45deg) translate(-1px,-1px);}
+.task-body{flex:1;}
+.task-title{font-size:13px;color:var(--t1);line-height:1.45;transition:color 0.2s;}
+.task-meta{font-size:11px;color:var(--t3);margin-top:2px;display:flex;gap:8px;align-items:center;}
+.task-item.done-item .task-title{color:var(--t3);text-decoration:line-through;text-decoration-color:rgba(0,230,168,0.4);}
+.task-tag{font-size:9px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:'Space Mono',monospace;color:var(--ink);}
+.tag-deep{background:var(--mc-purple);}
+.tag-learn{background:var(--mc-pink);}
+.tag-ship{background:var(--mc-tangerine);}
+.tag-review{background:var(--mc-blue);}
+.mit-badge{background:var(--mc-red);color:var(--ink);font-size:9px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:'Space Mono',monospace;}
+.scary-badge{background:var(--org);color:var(--ink);font-size:9px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:'Space Mono',monospace;}
+.followup-badge{background:var(--sky);color:var(--ink);font-size:9px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:'Space Mono',monospace;}
+.closed-badge{background:rgba(255,255,255,0.12);color:var(--t2);font-size:9px;font-weight:700;border-radius:999px;padding:2px 9px;font-family:'Space Mono',monospace;}
+.task-actions{display:flex;gap:4px;opacity:0;transition:opacity 0.15s;}
+.task-item:hover .task-actions{opacity:1;}
+.task-act-btn{background:none;border:none;color:var(--t3);cursor:pointer;padding:2px 4px;font-size:12px;border-radius:3px;transition:color 0.15s;}
+.task-act-btn:hover{color:var(--g);}
+
+/* ── WEEKLY CHART ── */
+.wk-bars{display:flex;gap:6px;align-items:flex-end;height:70px;margin-bottom:4px;}
+.wk-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;}
+.wk-bar-outer{width:100%;height:60px;background:rgba(255,255,255,0.05);border-radius:4px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;}
+.wk-bar-inner{background:linear-gradient(180deg,var(--gb),var(--g));border-radius:4px;transition:height 0.5s cubic-bezier(0.4,0,0.2,1);}
+.wk-bar-label{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);text-align:center;}
+.wk-bar-pct{font-family:'Space Mono',monospace;font-size:8px;color:var(--t3);text-align:center;}
+
+/* ── STREAK ── */
+.streak-grid{display:flex;gap:3px;flex-wrap:wrap;}
+.streak-dot{width:11px;height:11px;border-radius:2px;transition:background 0.2s;}
+.s-on{background:var(--g);}
+.s-off{background:rgba(255,255,255,0.06);}
+.s-today{background:var(--gb);outline:1.5px solid var(--g);outline-offset:1px;}
+
+/* ── MODAL ── */
+.modal-backdrop{position:fixed;inset:0;background:rgba(5,5,7,0.85);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);}
+.modal-backdrop.hidden{display:none;}
+.modal{background:var(--bd);border:1px solid rgba(0,230,168,0.25);border-radius:var(--brl);padding:1.5rem;width:520px;max-width:95vw;max-height:85vh;overflow-y:auto;box-shadow:0 12px 40px rgba(0,0,0,0.45);}
+.modal-title{font-size:16px;font-weight:600;color:var(--t1);margin-bottom:1.25rem;display:flex;align-items:center;gap:8px;}
+.modal-title i{color:var(--g);font-size:18px;}
+.form-group{margin-bottom:1rem;}
+.form-label{font-size:11px;font-family:'Space Mono',monospace;text-transform:uppercase;letter-spacing:0.09em;color:var(--t3);margin-bottom:5px;display:block;}
+.form-input{width:100%;background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:10px;color:var(--t1);font-size:13px;padding:8px 12px;font-family:'Figtree',sans-serif;outline:none;transition:border-color 0.15s;}
+.form-input:focus{border-color:rgba(0,230,168,0.5);}
+.form-input::placeholder{color:var(--t3);}
+select.form-input option{background:#141417;color:#fff;}
+.form-row{display:flex;gap:10px;}
+.form-row .form-group{flex:1;}
+.modal-actions{display:flex;gap:8px;justify-content:flex-end;margin-top:1.25rem;}
+.btn{padding:7px 18px;border-radius:999px;font-size:13px;font-weight:600;cursor:pointer;border:none;font-family:'Figtree',sans-serif;transition:all 0.15s;}
+.btn-primary{background:var(--g);color:#0A0A0C;}
+.btn-primary:hover{background:var(--gb);}
+.btn-ghost{background:rgba(255,255,255,0.06);color:var(--t2);border:1px solid var(--t4);}
+.btn-ghost:hover{background:rgba(255,255,255,0.1);}
+.btn-danger{background:var(--mc-red);color:var(--ink);border:none;}
+.btn-danger:hover{background:#FF6164;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:var(--bd);border:1px solid rgba(0,230,168,0.35);border-radius:10px;padding:0.7rem 1rem;font-size:13px;color:var(--t1);z-index:999;transform:translateY(60px);opacity:0;transition:all 0.28s;pointer-events:none;display:flex;align-items:center;gap:8px;box-shadow:0 8px 32px rgba(0,0,0,0.5);}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast .td{width:7px;height:7px;border-radius:50%;background:var(--g);}
+
+/* ── JOURNAL ── */
+.journal-entry{background:rgba(255,255,255,0.03);border:1px solid var(--t4);border-radius:8px;padding:0.75rem;margin-bottom:8px;}
+.je-date{font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:4px;}
+.je-text{font-size:13px;color:var(--t2);line-height:1.6;}
+
+/* ── ANALYTICS ── */
+.phase-progress-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,0.04);}
+.phase-progress-row:last-child{border-bottom:none;}
+.pp-label{font-size:12px;color:var(--t2);width:160px;flex-shrink:0;}
+.pp-bar{flex:1;height:6px;background:rgba(255,255,255,0.06);border-radius:999px;overflow:hidden;}
+.pp-fill{height:100%;background:linear-gradient(90deg,var(--g),var(--gb));border-radius:999px;transition:width 0.5s;}
+.pp-pct{font-family:'Space Mono',monospace;font-size:10px;color:var(--g);width:35px;text-align:right;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;height:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:rgba(0,230,168,0.2);border-radius:999px;}
+::-webkit-scrollbar-thumb:hover{background:rgba(0,230,168,0.4);}
+
+/* ── SECTION DIVIDER ── */
+.section-tag{font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.12em;color:var(--g);margin-bottom:10px;display:flex;align-items:center;gap:8px;}
+.section-tag::after{content:'';flex:1;height:1px;background:rgba(0,230,168,0.1);}
+
+/* ── VIEW TOGGLE (List/Board) ── */
+.view-toggle{display:flex;background:rgba(255,255,255,0.05);border:1px solid var(--t4);border-radius:999px;padding:3px;gap:2px;}
+.view-toggle-btn{background:none;border:none;color:var(--t2);font-size:12px;padding:5px 12px;border-radius:999px;cursor:pointer;font-family:'Figtree',sans-serif;display:flex;align-items:center;gap:5px;transition:all 0.15s;}
+.view-toggle-btn:hover{color:var(--t1);}
+.view-toggle-btn.active{background:rgba(255,255,255,0.12);color:#fff;font-weight:600;}
+
+/* ── KANBAN BOARD ── */
+.kanban-wrap{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;}
+.kanban-col{background:rgba(255,255,255,0.03);border:1px solid var(--t4);border-radius:var(--brl);padding:10px;min-height:140px;}
+.kanban-col-head{display:flex;align-items:center;gap:8px;margin-bottom:10px;padding:2px;}
+.kanban-col-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.kanban-col-title{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:0.06em;}
+.kanban-count{font-family:'Space Mono',monospace;font-size:10px;background:rgba(255,255,255,0.1);border-radius:999px;padding:2px 8px;margin-left:auto;}
+.kanban-card{background:var(--bd);border-radius:12px;padding:10px 12px;margin-bottom:8px;cursor:pointer;border-left:4px solid transparent;box-shadow:0 2px 6px rgba(0,0,0,0.22);transition:transform 0.12s;}
+.kanban-card:hover{transform:translateY(-2px);}
+.kanban-card-title{font-size:12.5px;color:var(--t1);margin-bottom:8px;line-height:1.4;}
+.kanban-card-meta{display:flex;gap:6px;align-items:center;flex-wrap:wrap;}
+.kanban-empty{color:var(--t3);font-size:11px;padding:0.5rem 2px;}
+
+/* ── RESPONSIVE ── */
+@media (max-width:900px){
+  #app{grid-template-columns:1fr;grid-template-rows:52px auto 1fr;}
+  #sidebar{position:static;flex-direction:row;flex-wrap:wrap;padding:0.5rem;overflow-x:auto;}
+  .sb-section{margin-bottom:0;display:flex;flex-direction:row;flex-wrap:wrap;align-items:center;}
+  .sb-label{display:none;}
+  .sb-item{white-space:nowrap;}
+  .sb-divider{display:none;}
+  .sb-sprint-box{display:none;}
+  .grid-2,.grid-3,.grid-4{grid-template-columns:1fr;}
+  .kanban-wrap{grid-template-columns:1fr;}
+  html,body{overflow:auto;}
+}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- TOPBAR -->
+<div id="topbar">
+  <div class="tb-brand"><span class="tb-dot"></span>Apex — Productivity OS</div>
+  <div class="tb-date" id="tbDate"></div>
+  <div class="tb-sprint" id="tbSprint">Week 1 of 12</div>
+  <button class="tb-btn primary" onclick="openModal('addTask')"><i class="ti ti-plus" style="font-size:12px"></i> Add Task</button>
+  <button class="tb-btn" onclick="openModal('addOKR')"><i class="ti ti-target" style="font-size:12px"></i> Add OKR</button>
+  <button class="tb-btn" onclick="openModal('addDayBlock', today())"><i class="ti ti-clock" style="font-size:12px"></i> Add Block</button>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-section">
+    <div class="sb-label">Home</div>
+    <div class="sb-item active" onclick="nav('dashboard')"><i class="ti ti-layout-dashboard"></i> Dashboard</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Plan</div>
+    <div class="sb-item" onclick="nav('okr')"><i class="ti ti-target"></i> OKR Goals <span class="sb-count" id="sbOkrCount">1</span></div>
+    <div class="sb-item" onclick="nav('backlog')"><i class="ti ti-inbox"></i> Backlog <span class="sb-count" id="sbBacklogCount">0</span></div>
+    <div class="sb-item" onclick="nav('tasks')"><i class="ti ti-flame"></i> Daily MITs <span class="sb-count" id="sbTaskCount">0</span></div>
+    <div class="sb-item" onclick="nav('timeblocks')"><i class="ti ti-clock"></i> Time Blocks</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Reflect</div>
+    <div class="sb-item" onclick="nav('weekly')"><i class="ti ti-calendar-week"></i> Weekly Review</div>
+    <div class="sb-item" onclick="nav('analytics')"><i class="ti ti-chart-bar"></i> Analytics</div>
+    <div class="sb-item" onclick="nav('journal')"><i class="ti ti-writing"></i> Journal</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-label">Habits</div>
+    <div class="sb-item" onclick="nav('mindset')"><i class="ti ti-bulb"></i> Mindset <span class="sb-count" id="sbMindsetCount">0/3</span></div>
+    <div class="sb-item" onclick="nav('morning')"><i class="ti ti-sunrise"></i> Morning Routine <span class="sb-count" id="sbMorningCount">—</span></div>
+  </div>
+  <div class="sb-divider"></div>
+  <div class="sb-section">
+    <div class="sb-label">Training</div>
+    <div class="sb-item" onclick="nav('training')"><i class="ti ti-brain"></i> Claude Code Plan</div>
+  </div>
+  <div class="sb-sprint-box">
+    <div class="sb-sprint-label">Active Sprint</div>
+    <div class="sb-sprint-title">12-Week Mastery</div>
+    <div class="bar-track"><div class="bar-fill" id="sbSprintBar" style="width:8%"></div></div>
+    <div class="sb-sprint-meta"><span id="sbSprintWeek">Week 1 of 12</span><span class="sb-sprint-pct" id="sbSprintPct">0%</span></div>
+  </div>
+</div>
+
+<!-- CONTENT -->
+<div id="content">
+
+  <!-- DASHBOARD -->
+  <div class="page active" id="page-dashboard">
+    <div class="page-title">Good <span id="timeGreet">morning</span>, <strong id="userName">Champion</strong> 👋</div>
+    <div class="page-sub" id="dashSub">Let's make today count.</div>
+
+    <div class="grid-4">
+      <div class="stat-card" style="display:flex;align-items:center;gap:12px;">
+        <div id="ds-mit-ring"></div>
+        <div><div class="sl">MITs done</div><div class="st" id="ds-mit-t">—</div></div>
+      </div>
+      <div class="stat-card" style="display:flex;align-items:center;gap:12px;">
+        <div id="ds-deep-ring"></div>
+        <div><div class="sl">Deep work today</div><div class="st" id="ds-deep-t">—</div></div>
+      </div>
+      <div class="stat-card" style="display:flex;align-items:center;gap:12px;">
+        <div id="ds-week-ring"></div>
+        <div><div class="sl">Week score</div><div class="st" id="ds-week-t">—</div></div>
+      </div>
+      <div class="stat-card" style="display:flex;align-items:center;gap:12px;">
+        <div id="ds-streak-ring"></div>
+        <div><div class="sl">Day streak</div><div class="st" id="ds-streak-t">—</div></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-flame"></i> Today's MITs</div>
+          <div style="display:flex;gap:6px;">
+            <button class="icon-btn" onclick="openModal('addTask')"><i class="ti ti-plus"></i> Add</button>
+            <button class="icon-btn" onclick="nav('tasks')">View all →</button>
+          </div>
+        </div>
+        <div id="dashMITs"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-clock"></i> Time Blocks — Today</div>
+          <div style="display:flex;gap:6px;">
+            <button class="icon-btn" onclick="openModal('addDayBlock', today())"><i class="ti ti-plus"></i> Add</button>
+            <button class="icon-btn" onclick="nav('timeblocks')">View all →</button>
+          </div>
+        </div>
+        <div id="dashBlocks"></div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-target"></i> OKR Snapshot</div>
+          <button class="icon-btn" onclick="nav('okr')">View all →</button>
+        </div>
+        <div id="dashOKRs"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-chart-bar"></i> This Week</div>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <span class="badge badge-g" id="dashWeekBadge">Week 1</span>
+            <button class="icon-btn" onclick="nav('weekly')">View all →</button>
+          </div>
+        </div>
+        <div class="wk-bars" id="dashWeekBars"></div>
+        <div style="display:flex;gap:6px;justify-content:space-evenly;" id="dashWeekLabels"></div>
+        <div style="margin-top:12px;">
+          <div class="section-tag" style="margin-bottom:6px;">Consistency streak — last 28 days</div>
+          <div class="streak-grid" id="dashStreak"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-sunrise"></i> Morning Routine</div>
+          <button class="icon-btn" onclick="nav('morning')">View all →</button>
+        </div>
+        <div id="dashMorning"></div>
+      </div>
+      <div class="card">
+        <div class="card-head">
+          <div class="card-title"><i class="ti ti-bulb"></i> Mindset</div>
+          <div style="display:flex;gap:6px;">
+            <button class="icon-btn" onclick="openModal('addMindset')"><i class="ti ti-plus"></i> Check-in</button>
+            <button class="icon-btn" onclick="nav('mindset')">View all →</button>
+          </div>
+        </div>
+        <div id="dashMindset"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- OKR PAGE -->
+  <div class="page" id="page-okr">
+    <div class="page-title"><strong>OKR</strong> Goals</div>
+    <div class="page-sub">Objectives & Key Results — Andy Grove / Google framework</div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      <button class="tb-btn primary" onclick="openModal('addOKR')"><i class="ti ti-plus" style="font-size:12px"></i> New Objective</button>
+      <select class="tb-btn" id="okrFilter" onchange="renderOKRs()" style="cursor:pointer;">
+        <option value="all">All categories</option>
+        <option value="training">Training</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="health">Health</option>
+      </select>
+    </div>
+    <div id="okrList"></div>
+  </div>
+
+  <!-- TASKS PAGE -->
+  <div class="page" id="page-tasks">
+    <div class="page-title"><strong>Daily</strong> MITs</div>
+    <div class="page-sub">Most Important Tasks — 3 per day max (Gary Keller / GTD)</div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      <button class="tb-btn primary" onclick="openModal('addTask')"><i class="ti ti-plus" style="font-size:12px"></i> New Task</button>
+      <select class="tb-btn" id="taskFilter" onchange="renderTasks();renderTaskBoard();" style="cursor:pointer;">
+        <option value="all">All tasks</option>
+        <option value="today">Today</option>
+        <option value="overdue">Overdue</option>
+        <option value="pending">Pending</option>
+        <option value="done">Completed</option>
+        <option value="scary">😱 Scary</option>
+        <option value="followup">🔁 Follow-up (open)</option>
+      </select>
+      <select class="tb-btn" id="taskCatFilter" onchange="renderTasks()" style="cursor:pointer;">
+        <option value="all">All categories</option>
+        <option value="training">Training</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="health">Health</option>
+      </select>
+      <button class="tb-btn" onclick="purgeOldDoneTasks()" title="Delete completed tasks older than 30 days"><i class="ti ti-eraser" style="font-size:12px"></i> Purge old done</button>
+      <div class="view-toggle" style="margin-left:auto;">
+        <button class="view-toggle-btn active" id="taskViewListBtn" onclick="setTaskViewMode('list')"><i class="ti ti-list"></i> List</button>
+        <button class="view-toggle-btn" id="taskViewBoardBtn" onclick="setTaskViewMode('board')"><i class="ti ti-layout-kanban"></i> Board</button>
+      </div>
+    </div>
+    <div class="card" id="taskListWrap"><div id="taskList"></div></div>
+    <div id="taskBoard" class="kanban-wrap" style="display:none;"></div>
+  </div>
+
+  <!-- BACKLOG PAGE -->
+  <div class="page" id="page-backlog">
+    <div class="page-title"><strong>Backlog</strong></div>
+    <div class="page-sub">Capture ideas & tasks with no date yet — GTD-style holding area. Schedule them into a Daily MIT when you're ready.</div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;flex-wrap:wrap;">
+      <button class="tb-btn primary" onclick="openModal('addBacklogTask')"><i class="ti ti-plus" style="font-size:12px"></i> New Backlog Item</button>
+      <button class="tb-btn" onclick="openModal('bulkAddBacklog')"><i class="ti ti-clipboard-text" style="font-size:12px"></i> Bulk Add</button>
+      <select class="tb-btn" id="backlogCatFilter" onchange="renderBacklog()" style="cursor:pointer;">
+        <option value="all">All categories</option>
+        <option value="training">Training</option>
+        <option value="work">Work</option>
+        <option value="personal">Personal</option>
+        <option value="health">Health</option>
+      </select>
+    </div>
+    <div class="card"><div id="backlogList"></div></div>
+  </div>
+
+  <!-- TIME BLOCKS PAGE -->
+  <div class="page" id="page-timeblocks">
+    <div class="page-title"><strong>Time</strong> Blocks</div>
+    <div class="page-sub">Elon Musk 5-min timeboxing · Cal Newport Deep Work method</div>
+
+    <div class="card" style="margin-bottom:1.25rem;">
+      <div class="card-head" style="flex-wrap:wrap;gap:8px;">
+        <div class="card-title"><i class="ti ti-calendar"></i> Day agenda</div>
+        <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+          <input type="date" class="form-input" id="tbCalendarDate" style="width:150px;padding:5px 10px;font-size:12px;" onchange="onTbCalendarDateChange(this.value)">
+          <button class="icon-btn" id="blockDayResetBtn" style="display:none" onclick="resetDayOverride(tbCalendarSelectedDate)"><i class="ti ti-refresh"></i> Reset to template</button>
+          <button class="icon-btn" onclick="openModal('addDayBlock', tbCalendarSelectedDate)"><i class="ti ti-plus"></i> Exception</button>
+        </div>
+      </div>
+      <div id="blockDayAgenda"></div>
+    </div>
+
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
+      <button class="tb-btn primary" onclick="openModal('addBlock')"><i class="ti ti-plus" style="font-size:12px"></i> New Template Block</button>
+      <div style="display:flex;gap:6px;margin-left:auto;">
+        <span class="badge badge-g">● Deep Work</span>
+        <span class="badge badge-s">● Shallow</span>
+        <span class="badge badge-w" style="color:var(--gb);border-color:rgba(200,255,107,0.2);background:rgba(200,255,107,0.08);">● Personal</span>
+        <span class="badge badge-w">● Break</span>
+      </div>
+    </div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-sun"></i> Weekday Template</div></div>
+        <div id="blockListWeekday"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-beach"></i> Weekend Template</div></div>
+        <div id="blockListWeekend"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WEEKLY REVIEW PAGE -->
+  <div class="page" id="page-weekly">
+    <div class="page-title"><strong>Weekly</strong> Review</div>
+    <div class="page-sub">12-Week Year framework — Brian Moran · Weekly execution score</div>
+    <div class="grid-3" id="weeklyPhaseSummary"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-chart-line"></i> Execution Score by Week</div></div>
+        <div id="weeklyScoreChart"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-writing"></i> Weekly Reflection</div><button class="icon-btn" onclick="openModal('addReflection')"><i class="ti ti-plus"></i> Add</button></div>
+        <div id="weeklyReflections"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:14px;">
+      <div class="card-head" style="flex-wrap:wrap;gap:8px;">
+        <div class="card-title"><i class="ti ti-trophy"></i> 🎉 Completed — Week <span id="weeklyCelebWeekNum"></span></div>
+        <div style="display:flex;align-items:center;gap:6px;">
+          <button class="icon-btn" id="weeklyCelebPrevBtn" onclick="shiftWeeklyReviewWeek(-1)"><i class="ti ti-chevron-left"></i></button>
+          <span style="font-family:'Space Mono',monospace;font-size:11px;color:var(--t3);" id="weeklyCelebRange"></span>
+          <button class="icon-btn" id="weeklyCelebNextBtn" onclick="shiftWeeklyReviewWeek(1)"><i class="ti ti-chevron-right"></i></button>
+        </div>
+      </div>
+      <div class="grid-3" id="weeklyCelebStats" style="margin-bottom:10px;"></div>
+      <div id="weeklyCelebList"></div>
+    </div>
+  </div>
+
+  <!-- ANALYTICS PAGE -->
+  <div class="page" id="page-analytics">
+    <div class="page-title"><strong>Analytics</strong></div>
+    <div class="page-sub">Progress across all goals, phases, and habits</div>
+    <div class="grid-4" id="analyticsStats"></div>
+    <div class="grid-2">
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-target"></i> OKR Progress</div></div>
+        <div id="analyticsOKR"></div>
+      </div>
+      <div class="card">
+        <div class="card-head"><div class="card-title"><i class="ti ti-brain"></i> Training Progress by Phase</div></div>
+        <div id="analyticsTraining"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:12px;">
+      <div class="card-head"><div class="card-title"><i class="ti ti-flame"></i> Habit Streaks</div></div>
+      <div class="grid-3" id="analyticsStreaks" style="margin-bottom:0;"></div>
+    </div>
+  </div>
+
+  <!-- JOURNAL PAGE -->
+  <div class="page" id="page-journal">
+    <div class="page-title"><strong>Journal</strong></div>
+    <div class="page-sub">Daily reflection — 10 min per day builds extraordinary clarity over time</div>
+    <div style="margin-bottom:1.25rem;">
+      <button class="tb-btn primary" onclick="openModal('addJournal')"><i class="ti ti-pencil" style="font-size:12px"></i> New Entry</button>
+    </div>
+    <div class="card" style="margin-bottom:12px;">
+      <div class="card-head"><div class="card-title"><i class="ti ti-writing"></i> Prompts for today</div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;" id="journalPrompts"></div>
+    </div>
+    <div id="journalList"></div>
+  </div>
+
+  <!-- MINDSET CHECK-IN PAGE -->
+  <div class="page" id="page-mindset">
+    <div class="page-title"><strong>Mindset</strong> Check-in</div>
+    <div class="page-sub">2-3x a week — a short gut-check, not a daily chore</div>
+    <div style="display:flex;gap:8px;margin-bottom:1.25rem;align-items:center;flex-wrap:wrap;">
+      <button class="tb-btn primary" onclick="openModal('addMindset')"><i class="ti ti-bulb" style="font-size:12px"></i> New Check-in</button>
+      <span class="badge badge-g" id="mindsetWeekBadge">0/3 this week</span>
+    </div>
+    <div class="grid-3" id="mindsetStats"></div>
+    <div class="card">
+      <div class="card-head"><div class="card-title"><i class="ti ti-history"></i> History</div></div>
+      <div id="mindsetList"></div>
+    </div>
+  </div>
+
+  <!-- MORNING ROUTINE PAGE -->
+  <div class="page" id="page-morning">
+    <div class="page-title">🌅 <strong>Successful</strong> Morning Routine</div>
+    <div class="page-sub">Monday to Friday — win the morning, win the day</div>
+    <div id="morningContent"></div>
+  </div>
+
+  <!-- TRAINING PAGE -->
+  <div class="page" id="page-training">
+    <div class="page-title">Claude Code <strong>Training Plan</strong></div>
+    <div class="page-sub">12-Week mastery program — click tasks to mark complete</div>
+    <div class="grid-4" style="margin-bottom:1.5rem;">
+      <div class="stat-card"><div class="sn" id="tr-done">0</div><div class="sl">Tasks done</div></div>
+      <div class="stat-card"><div class="sn" id="tr-pct">0%</div><div class="sl">Overall progress</div></div>
+      <div class="stat-card"><div class="sn" id="tr-weeks">0</div><div class="sl">Weeks complete</div></div>
+      <div class="stat-card"><div class="sn" id="tr-streak">0</div><div class="sl">Day streak</div></div>
+    </div>
+    <div id="trainingContent"></div>
+  </div>
+
+</div><!-- end #content -->
+</div><!-- end #app -->
+
+<!-- MODALS -->
+<div class="modal-backdrop hidden" id="modalBackdrop" onclick="closeModalOutside(event)">
+  <div class="modal" id="modalBox"></div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"><span class="td"></span><span id="toastMsg">Done</span></div>
+
+<script>
+// ══════════════════════════════════════════════
+// DATA LAYER
+// ══════════════════════════════════════════════
+const SK = 'apex-v2';
+let S = {
+  userName: 'Champion',
+  sprintStart: new Date().toISOString().split('T')[0],
+  okrs: [],
+  tasks: [],
+  blocks: [],
+  blockOverrides: {},
+  trainingDone: [],
+  weekScores: {},
+  journalEntries: [],
+  reflections: [],
+  mindsetEntries: [],
+  morningLog: {},
+  streaks: { tasks: [], training: [], journal: [], morning: [] },
+  lastRolloverDate: '',
+};
+
+function load() {
+  try {
+    const r = localStorage.getItem(SK);
+    if (r) {
+      const parsed = JSON.parse(r);
+      S = { ...S, ...parsed };
+      // migrate legacy single streak array (pre-v2.1) into per-habit streaks
+      if (parsed.streakDays && !parsed.streaks) {
+        S.streaks = { tasks: [...parsed.streakDays], training: [...parsed.streakDays], journal: [...parsed.streakDays] };
+      }
+      if (!S.blockOverrides) S.blockOverrides = {};
+      if (!S.streaks) S.streaks = { tasks: [], training: [], journal: [] };
+      if (!S.streaks.morning) S.streaks.morning = [];
+      if (!S.mindsetEntries) S.mindsetEntries = [];
+      if (!S.morningLog) S.morningLog = {};
+      // migrate OKRs saved before the per-OKR step plan existed
+      S.okrs.forEach(o => { if (!o.steps) o.steps = []; });
+    }
+  } catch(e) {}
+}
+function save() {
+  try { localStorage.setItem(SK, JSON.stringify(S)); } catch(e) {}
+}
+
+function exportData() {
+  const blob = new Blob([JSON.stringify(S, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `apex-backup-${today()}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(url);
+  toast('Data exported ✓');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data || typeof data !== 'object') throw new Error('Invalid file');
+      if (!confirm('This will replace your current data with the imported file. Continue?')) return;
+      S = { ...S, ...data };
+      save();
+      closeModal();
+      updateTopbar();
+      renderPage(currentPage);
+      toast('Data imported ✓');
+    } catch (err) {
+      alert('Could not read this file. Make sure it is a valid Apex export (.json).');
+    }
+  };
+  reader.readAsText(file);
+  event.target.value = '';
+}
+
+// ── TRAINING DATA ──────────────────────────────
+const PLAN = [
+  { id:'p1', label:'Phase 1', name:'Foundations & Setup', color:'#00E6A8',
+    weeks:[
+      { id:'w1', label:'Week 1', title:'Claude Code Setup & First Projects', tasks:[
+        {id:'w1-1',day:'Mon',we:false,text:'Install Claude Code, read official docs end-to-end. Run your first slash command.'},
+        {id:'w1-2',day:'Tue',we:false,text:'Watch "Claude Code Full Walkthrough" on YouTube. Build a simple TODO CLI app.'},
+        {id:'w1-3',day:'Wed',we:false,text:'Learn CLAUDE.md: write your first project context file. Practice /init on a blank repo.'},
+        {id:'w1-4',day:'Thu',we:false,text:'Explore all slash commands (/compact, /memory, /doctor). Read prompt engineering guide.'},
+        {id:'w1-5',day:'Fri',we:false,text:'Build a basic REST API from scratch with zero manual code. Reflect in dev journal.'},
+        {id:'w1-6',day:'Sat/Sun',we:true,text:'1h: Rebuild the same project faster. Focus on prompt quality over quantity.'},
+      ]},
+      { id:'w2', label:'Week 2', title:'Vibecoding Mental Model', tasks:[
+        {id:'w2-1',day:'Mon',we:false,text:"Read Simon Willison's Vibe Coding essay + Karpathy's original tweet thread."},
+        {id:'w2-2',day:'Tue',we:false,text:'Watch 2 vibe coding project videos on YouTube. Note the prompt patterns used.'},
+        {id:'w2-3',day:'Wed',we:false,text:'Build a full landing page UI from a single-sentence description. No design doc.'},
+        {id:'w2-4',day:'Thu',we:false,text:'Learn extended thinking mode & context window management. Practice /compact.'},
+        {id:'w2-5',day:'Fri',we:false,text:'Build a multi-file project (expense tracker). Let Claude navigate file structure.'},
+        {id:'w2-6',day:'Sat/Sun',we:true,text:'1h: Write a prompt patterns cheat sheet. Publish as a GitHub Gist.'},
+      ]},
+      { id:'w3', label:'Week 3', title:'Git, Testing & Iteration', tasks:[
+        {id:'w3-1',day:'Mon',we:false,text:'Learn Claude Code + Git workflow: commit checkpoints, let Claude review diffs.'},
+        {id:'w3-2',day:'Tue',we:false,text:'Practice TDD with Claude: describe tests first, then implement. Watch AI-TDD video.'},
+        {id:'w3-3',day:'Wed',we:false,text:'Debugging practice: introduce bugs intentionally, guide Claude to find them.'},
+        {id:'w3-4',day:'Thu',we:false,text:'Read Claude Code best practices on anthropic.com. Implement 5 new habits.'},
+        {id:'w3-5',day:'Fri',we:false,text:'Phase 1 capstone: build a complete project (blog CMS) in one 2h session.'},
+        {id:'w3-6',day:'Sat/Sun',we:true,text:'1h: Write a retrospective. What slowed you? Which prompt patterns worked best?'},
+      ]},
+    ]},
+  { id:'p2', label:'Phase 2', name:'Core Power Skills', color:'#F5B83D',
+    weeks:[
+      { id:'w4', label:'Week 4', title:'MCP Servers & Tool Integrations', tasks:[
+        {id:'w4-1',day:'Mon',we:false,text:'Read the MCP protocol docs. Connect your first MCP server (filesystem or GitHub).'},
+        {id:'w4-2',day:'Tue',we:false,text:'Connect Claude Code to a database via MCP. Run live queries via natural language.'},
+        {id:'w4-3',day:'Wed',we:false,text:'Watch MCP deep dive video. Build a custom MCP tool for a repeated task.'},
+        {id:'w4-4',day:'Thu',we:false,text:'Set up web search + browser MCP. Build a research agent that summarises articles.'},
+        {id:'w4-5',day:'Fri',we:false,text:'MCP challenge: automate full dev workflow (write → test → PR) via Claude Code.'},
+        {id:'w4-6',day:'Sat/Sun',we:true,text:'1h: Contribute your custom MCP tool to GitHub with a short README.'},
+      ]},
+      { id:'w5', label:'Week 5', title:'Agentic Workflows & Long Tasks', tasks:[
+        {id:'w5-1',day:'Mon',we:false,text:'Study headless/CI mode. Run Claude Code in a non-interactive script.'},
+        {id:'w5-2',day:'Tue',we:false,text:'Build a multi-step agent: data fetch → transform → write report → commit.'},
+        {id:'w5-3',day:'Wed',we:false,text:'Learn /memory and project-level context. Optimise a large repo CLAUDE.md.'},
+        {id:'w5-4',day:'Thu',we:false,text:'Study subagent patterns: Claude spawning sub-tasks. Read agentic best practices.'},
+        {id:'w5-5',day:'Fri',we:false,text:'Build a code migration agent: reads legacy files, rewrites to modern patterns.'},
+        {id:'w5-6',day:'Sat/Sun',we:true,text:'1h: Watch a YouTube vibe-coder build a full SaaS MVP. Note session management.'},
+      ]},
+      { id:'w6', label:'Week 6', title:'Full-stack Vibecoding Projects', tasks:[
+        {id:'w6-1',day:'Mon',we:false,text:'Pick a real project idea. Write a single-page spec. Vibe-code the whole thing.'},
+        {id:'w6-2',day:'Tue',we:false,text:'Add auth, database, and UI in one session. Practice iterate fast, describe clearly.'},
+        {id:'w6-3',day:'Wed',we:false,text:'Let Claude write your Dockerfile, CI/CD config, and deploy to a cloud provider.'},
+        {id:'w6-4',day:'Thu',we:false,text:'Code review mode: ask Claude to audit its own output for security & performance.'},
+        {id:'w6-5',day:'Fri',we:false,text:'Phase 2 capstone: ship a working app to production, entirely with Claude Code.'},
+        {id:'w6-6',day:'Sat/Sun',we:true,text:'1h: Post about your shipped app on X/LinkedIn/dev.to. Start building in public.'},
+      ]},
+    ]},
+  { id:'p3', label:'Phase 3', name:'Advanced Patterns', color:'#4DA3FF',
+    weeks:[
+      { id:'w7', label:'Week 7', title:'Advanced Prompt Engineering', tasks:[
+        {id:'w7-1',day:'Mon',we:false,text:"Read Anthropic's full prompt engineering guide. Practice XML tags for outputs."},
+        {id:'w7-2',day:'Tue',we:false,text:'Study chain-of-thought prompting for code planning. Build plan → execute workflow.'},
+        {id:'w7-3',day:'Wed',we:false,text:'Practice role-based prompting: architect, security reviewer, QA — same task.'},
+        {id:'w7-4',day:'Thu',we:false,text:'Build your personal prompt library. Categorise by task type. Version control it.'},
+        {id:'w7-5',day:'Fri',we:false,text:'Speed run: build a CRUD app in under 30 minutes using optimised prompts.'},
+        {id:'w7-6',day:'Sat/Sun',we:true,text:'1h: Explore community prompt repos on GitHub. Fork best ones, adapt to your style.'},
+      ]},
+      { id:'w8', label:'Week 8', title:'Multi-Agent & Parallel Workflows', tasks:[
+        {id:'w8-1',day:'Mon',we:false,text:"Study multi-agent architecture patterns from Anthropic's research posts."},
+        {id:'w8-2',day:'Tue',we:false,text:'Build a parallelised research pipeline: multiple agents gather, one aggregates.'},
+        {id:'w8-3',day:'Wed',we:false,text:'Implement an orchestrator–subagent pattern for a complex refactoring task.'},
+        {id:'w8-4',day:'Thu',we:false,text:'Study how top vibe-coders structure long sessions: context checkpoints.'},
+        {id:'w8-5',day:'Fri',we:false,text:'Build a self-healing CI that runs Claude Code when tests fail to auto-fix code.'},
+        {id:'w8-6',day:'Sat/Sun',we:true,text:'1h: Watch a recorded vibe-coding session (60+ min). Analyse decision moments.'},
+      ]},
+      { id:'w9', label:'Week 9', title:'Large Codebases & Legacy Code', tasks:[
+        {id:'w9-1',day:'Mon',we:false,text:'Practice on a large open-source repo: navigate, understand, propose changes.'},
+        {id:'w9-2',day:'Tue',we:false,text:'Legacy migration challenge: modernise old Python 2 / jQuery code in one session.'},
+        {id:'w9-3',day:'Wed',we:false,text:'Write CLAUDE.md for the large repo. Test if it helps Claude make better decisions.'},
+        {id:'w9-4',day:'Thu',we:false,text:'Security audit workflow: ask Claude to scan for common vulnerabilities.'},
+        {id:'w9-5',day:'Fri',we:false,text:'Phase 3 capstone: contribute a meaningful PR to an open-source project.'},
+        {id:'w9-6',day:'Sat/Sun',we:true,text:'1h: Write a blog post about your open-source PR. Share with vibe-coding community.'},
+      ]},
+    ]},
+  { id:'p4', label:'Phase 4', name:'Expert & Public Presence', color:'#C8FF6B',
+    weeks:[
+      { id:'w10', label:'Week 10', title:'Build Your Signature Tool', tasks:[
+        {id:'w10-1',day:'Mon',we:false,text:'Identify a gap in the vibe-coding ecosystem. Design a tool for a real pain point.'},
+        {id:'w10-2',day:'Tue',we:false,text:'Build the MVP using Claude Code exclusively. Ship on day 2 — no perfection.'},
+        {id:'w10-3',day:'Wed',we:false,text:'Add docs, tests, and a proper README — all via Claude Code. Publish to GitHub.'},
+        {id:'w10-4',day:'Thu',we:false,text:'Set up GitHub Actions CI, auto-publishing, and release notes via Claude Code.'},
+        {id:'w10-5',day:'Fri',we:false,text:'Launch your tool publicly. Write a launch post. Engage with every comment.'},
+        {id:'w10-6',day:'Sat/Sun',we:true,text:'1h: Gather feedback. Ship one improvement based on real user input.'},
+      ]},
+      { id:'w11', label:'Week 11', title:'Teach & Synthesise', tasks:[
+        {id:'w11-1',day:'Mon',we:false,text:'Write My Claude Code Workflow — a comprehensive guide. Publish on dev.to.'},
+        {id:'w11-2',day:'Tue',we:false,text:'Create a 10-minute tutorial video recording your Claude Code session. Publish.'},
+        {id:'w11-3',day:'Wed',we:false,text:'Build a curated Awesome Claude Code list on GitHub. Submit to community.'},
+        {id:'w11-4',day:'Thu',we:false,text:'Mentor someone: find a beginner on Reddit/Discord, walk them through Claude Code.'},
+        {id:'w11-5',day:'Fri',we:false,text:'Build a prompt template starter kit. Make it a public GitHub template repo.'},
+        {id:'w11-6',day:'Sat/Sun',we:true,text:'1h: Join an AI coding community (r/ClaudeAI, Discord). Answer 3 questions.'},
+      ]},
+      { id:'w12', label:'Week 12', title:'Mastery Review & Next Chapter', tasks:[
+        {id:'w12-1',day:'Mon',we:false,text:'Rebuild your Week 1 project from scratch. Compare speed, quality, sophistication.'},
+        {id:'w12-2',day:'Tue',we:false,text:'Full-day speed run: ideate → build → ship a complete product in under 2 hours.'},
+        {id:'w12-3',day:'Wed',we:false,text:'Write a 12-week retrospective. What changed? What do you know now?'},
+        {id:'w12-4',day:'Thu',we:false,text:'Set your next 90-day goals: specialise or go deeper on multi-agent systems.'},
+        {id:'w12-5',day:'Fri',we:false,text:'Celebrate. Ship one more project for fun. No pressure, just flow.'},
+        {id:'w12-6',day:'Sat/Sun',we:true,text:"1h: Plan your next learning arc. You're no longer a beginner."},
+      ]},
+    ]},
+];
+
+// ── DEFAULT OKR ────────────────────────────────
+function seedDefaults() {
+  if (S.okrs.length > 0) return;
+  S.okrs.push({
+    id: uid(), category: 'training', color: '#00E6A8',
+    objective: 'Master Claude Code & Vibecoding in 12 weeks',
+    krs: [
+      { id: uid(), text: 'Complete all 72 training tasks', target: 72, current: 0, unit: 'tasks' },
+      { id: uid(), text: 'Ship 4 public projects', target: 4, current: 0, unit: 'projects' },
+      { id: uid(), text: 'Build prompt library (50 patterns)', target: 50, current: 0, unit: 'patterns' },
+    ],
+    steps: []
+  });
+  S.blocks = [
+    { id:uid(), day:'weekday', type:'deep', start:'09:00', end:'11:00', title:'Deep Work — Claude Code training', okrLink:'' },
+    { id:uid(), day:'weekday', type:'deep', start:'11:00', end:'13:00', title:'Deep Work — Build & ship project', okrLink:'' },
+    { id:uid(), day:'weekday', type:'break', start:'13:00', end:'14:00', title:'Lunch & recharge', okrLink:'' },
+    { id:uid(), day:'weekday', type:'shallow', start:'14:00', end:'15:00', title:'Shallow — email, admin, reviews', okrLink:'' },
+    { id:uid(), day:'weekday', type:'deep', start:'15:00', end:'16:30', title:'Learning — videos, reading, notes', okrLink:'' },
+    { id:uid(), day:'weekday', type:'shallow', start:'16:30', end:'17:00', title:'Daily review + journal (10 min)', okrLink:'' },
+    { id:uid(), day:'weekend', type:'personal', start:'09:00', end:'10:00', title:'Weekend — 1h Claude Code practice', okrLink:'' },
+    { id:uid(), day:'weekend', type:'break', start:'10:00', end:'11:00', title:'Rest / family / outdoors', okrLink:'' },
+  ];
+  save();
+}
+
+// ══════════════════════════════════════════════
+// UTILITIES
+// ══════════════════════════════════════════════
+let uidN = Date.now();
+function uid() { return (++uidN).toString(36); }
+
+function escapeHtml(str) {
+  if (str === undefined || str === null) return '';
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+}
+
+function toast(msg) {
+  document.getElementById('toastMsg').textContent = msg;
+  const t = document.getElementById('toast');
+  t.classList.add('show');
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => t.classList.remove('show'), 2400);
+}
+
+function today() { return new Date().toISOString().split('T')[0]; }
+
+function formatDate(d) {
+  return new Date(d).toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' });
+}
+
+function sprintWeek() {
+  const start = new Date(S.sprintStart);
+  const now = new Date();
+  const diff = Math.floor((now - start) / (7 * 86400000)) + 1;
+  return Math.min(Math.max(diff, 1), 12);
+}
+
+// Calendar week (Mon–Sun) containing today, shifted by weekOffset weeks.
+function getWeekRange(weekOffset = 0) {
+  const d = new Date();
+  d.setDate(d.getDate() + weekOffset * 7);
+  const day = d.getDay();
+  const diffToMonday = day === 0 ? -6 : 1 - day;
+  const monday = new Date(d);
+  monday.setDate(d.getDate() + diffToMonday);
+  monday.setHours(0, 0, 0, 0);
+  const sunday = new Date(monday);
+  sunday.setDate(monday.getDate() + 6);
+  sunday.setHours(23, 59, 59, 999);
+  return { start: monday, end: sunday };
+}
+
+// 12-Week Year sprint week range, anchored on sprintStart (week 1 = sprintStart..+6 days).
+function sprintWeekRange(w) {
+  const start = new Date(S.sprintStart);
+  start.setDate(start.getDate() + (w - 1) * 7);
+  start.setHours(0, 0, 0, 0);
+  const end = new Date(start);
+  end.setDate(start.getDate() + 6);
+  end.setHours(23, 59, 59, 999);
+  return { start, end };
+}
+
+function sprintWeekTasksDone(w) {
+  const { start, end } = sprintWeekRange(w);
+  const weekTasks = S.tasks.filter(t => {
+    const td = new Date(t.date);
+    return td >= start && td <= end;
+  });
+  const done = weekTasks.filter(t => t.done).length;
+  return weekTasks.length ? Math.round((done / weekTasks.length) * 100) : 0;
+}
+
+function okrPct(okr) {
+  if (!okr.krs.length) return 0;
+  const total = okr.krs.reduce((a, kr) => a + Math.min(100, Math.round((kr.current / Math.max(kr.target, 1)) * 100)), 0);
+  return Math.round(total / okr.krs.length);
+}
+
+function trainingDonePct() {
+  const total = PLAN.flatMap(p => p.weeks.flatMap(w => w.tasks)).length;
+  return Math.round((S.trainingDone.length / total) * 100);
+}
+
+function weekTasksDone(weekOffset = 0) {
+  const { start, end } = getWeekRange(weekOffset);
+  const weekTasks = S.tasks.filter(t => {
+    const td = new Date(t.date);
+    return td >= start && td <= end;
+  });
+  const done = weekTasks.filter(t => t.done).length;
+  const total = weekTasks.length;
+  return total > 0 ? Math.round((done / total) * 100) : 0;
+}
+
+function krColor(pct) {
+  if (pct >= 70) return 'var(--g)';
+  if (pct >= 40) return 'var(--org)';
+  return 'var(--red)';
+}
+
+// ── CIRCULAR PROGRESS RINGS (SVG, no external library) ──
+function svgRing(pct, color, size, strokeWidth) {
+  size = size || 64; strokeWidth = strokeWidth || 6;
+  const r = (size - strokeWidth) / 2;
+  const c = 2 * Math.PI * r;
+  const clamped = Math.max(0, Math.min(100, pct || 0));
+  const offset = c * (1 - clamped / 100);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" style="transform:rotate(-90deg);display:block;">
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:rgba(255,255,255,0.08);stroke-width:${strokeWidth};"></circle>
+    <circle cx="${size/2}" cy="${size/2}" r="${r}" fill="none" style="stroke:${color};stroke-width:${strokeWidth};stroke-linecap:round;stroke-dasharray:${c};stroke-dashoffset:${offset};transition:stroke-dashoffset 0.6s cubic-bezier(0.4,0,0.2,1);"></circle>
+  </svg>`;
+}
+
+// A ring with a value centered inside it — used for the Dashboard's top stats.
+function ringStatHtml(pct, color, mainText, size) {
+  size = size || 64;
+  return `<div class="ring-wrap" style="width:${size}px;height:${size}px;">
+    ${svgRing(pct, color, size)}
+    <div class="ring-label">
+      <div class="ring-pct" style="color:${color};font-size:${Math.round(size * 0.2)}px;">${mainText}</div>
+    </div>
+  </div>`;
+}
+
+function categoryColor(cat) {
+  const map = { training:'var(--g)', work:'var(--sky)', personal:'var(--gb)', health:'var(--org)' };
+  return map[cat] || 'var(--t2)';
+}
+
+function blockTypeLabel(type) {
+  const map = { deep:'Deep Work', shallow:'Shallow Work', break:'Break', personal:'Personal' };
+  return map[type] || type;
+}
+
+// Effective time blocks for a given date: a date-specific override if one
+// exists, otherwise the weekday/weekend template.
+function effectiveBlocksForDate(dateStr) {
+  if (S.blockOverrides[dateStr]) return S.blockOverrides[dateStr];
+  const dow = new Date(dateStr).getDay();
+  const dayType = (dow >= 1 && dow <= 5) ? 'weekday' : 'weekend';
+  return S.blocks.filter(b => b.day === dayType);
+}
+
+// Daily MITs/tasks for a date that aren't linked to any time block on that date yet.
+function unscheduledTasksForDate(dateStr) {
+  const dayBlocks = effectiveBlocksForDate(dateStr);
+  const linkedIds = new Set(dayBlocks.map(b => b.taskLink).filter(Boolean));
+  return S.tasks.filter(t => t.date === dateStr && !linkedIds.has(t.id));
+}
+
+// Strip shown above a day's block list surfacing that day's Daily MITs/tasks
+// which aren't scheduled into a block yet, with a one-click "Schedule" action.
+function unscheduledTasksHtml(dateStr) {
+  const list = unscheduledTasksForDate(dateStr);
+  if (!list.length) return '';
+  return `<div style="margin-bottom:10px;padding:8px 10px;background:rgba(255,255,255,0.03);border:1px dashed var(--t4);border-radius:10px;">
+    <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.08em;color:var(--t3);margin-bottom:6px;">📌 Daily MITs not yet scheduled</div>
+    ${list.map(t => `<div style="display:flex;align-items:center;gap:8px;padding:3px 0;">
+      <span style="font-size:12px;flex:1;${t.done ? 'color:var(--t3);text-decoration:line-through;' : 'color:var(--t1);'}">${escapeHtml(t.title)}</span>
+      ${t.mit ? '<span class="mit-badge" style="padding:1px 7px;font-size:8px;">MIT</span>' : ''}
+      <button class="icon-btn" style="padding:2px 8px;font-size:10px;" onclick="openModal('addDayBlock','${dateStr}||${t.id}')"><i class="ti ti-plus"></i> Schedule</button>
+    </div>`).join('')}
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// DAILY ROLLOVER — carries recurring tasks forward
+// ══════════════════════════════════════════════
+function runDailyRollover() {
+  const t = today();
+  if (S.lastRolloverDate === t) return;
+  const dow = new Date().getDay();
+  const seriesMap = {};
+  S.tasks.forEach(task => {
+    if (!task.repeat || task.repeat === 'none') return;
+    const sid = task.seriesId || task.id;
+    if (!seriesMap[sid] || task.date > seriesMap[sid].date) seriesMap[sid] = task;
+  });
+  Object.values(seriesMap).forEach(latest => {
+    if (latest.date === t) return;
+    const latestDow = new Date(latest.date).getDay();
+    const shouldCreate =
+      latest.repeat === 'daily' ||
+      (latest.repeat === 'weekdays' && dow >= 1 && dow <= 5) ||
+      (latest.repeat === 'weekly' && latestDow === dow);
+    if (shouldCreate) {
+      S.tasks.push({
+        id: uid(),
+        seriesId: latest.seriesId || latest.id,
+        title: latest.title,
+        date: t,
+        category: latest.category,
+        mit: latest.mit,
+        okrLink: latest.okrLink,
+        repeat: latest.repeat,
+        done: false,
+      });
+    }
+  });
+  S.lastRolloverDate = t;
+  save();
+}
+
+function overdueTasks() {
+  const t = today();
+  return S.tasks.filter(x => x.date && !x.done && x.date < t);
+}
+
+// Backlog = Daily MITs/tasks with no date assigned yet.
+function backlogTasks() {
+  return S.tasks.filter(t => !t.date);
+}
+
+function bumpTaskToToday(id) {
+  const t = S.tasks.find(x => x.id === id);
+  if (!t) return;
+  t.date = today();
+  save();
+  renderPage(currentPage);
+  updateTopbar();
+  toast('Task moved to today');
+}
+
+// Marks a task "scary" (dreaded/avoided) and schedules it for today, so it
+// surfaces in the Dashboard's Scary Hour box to be tackled in one batch.
+function pushToScaryHour(id) {
+  const t = S.tasks.find(x => x.id === id);
+  if (!t) return;
+  t.date = today();
+  t.scary = true;
+  save();
+  renderPage(currentPage);
+  updateTopbar();
+  toast('Pushed to Scary Hour 😱');
+}
+
+// ══════════════════════════════════════════════
+// NAVIGATION
+// ══════════════════════════════════════════════
+let currentPage = 'dashboard';
+function nav(page) {
+  currentPage = page;
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.remove('active'));
+  document.getElementById('page-' + page)?.classList.add('active');
+  document.querySelectorAll('.sb-item').forEach(i => {
+    if (i.getAttribute('onclick')?.includes("'" + page + "'")) i.classList.add('active');
+  });
+  renderPage(page);
+}
+
+function renderPage(page) {
+  const fn = { dashboard: renderDashboard, okr: renderOKRs, tasks: renderTasks,
+    backlog: renderBacklog, timeblocks: renderBlocks, weekly: renderWeekly, analytics: renderAnalytics,
+    journal: renderJournal, mindset: renderMindset, morning: renderMorning, training: renderTraining };
+  fn[page]?.();
+}
+
+// ══════════════════════════════════════════════
+// TOPBAR
+// ══════════════════════════════════════════════
+function updateTopbar() {
+  const d = new Date();
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  document.getElementById('tbDate').textContent = `${days[d.getDay()]}, ${d.getDate()} ${months[d.getMonth()]} ${d.getFullYear()}`;
+  const wk = sprintWeek();
+  document.getElementById('tbSprint').textContent = `Week ${wk} of 12`;
+  document.getElementById('sbSprintWeek').textContent = `Week ${wk} of 12`;
+  const tpct = trainingDonePct();
+  document.getElementById('sbSprintBar').style.width = tpct + '%';
+  document.getElementById('sbSprintPct').textContent = tpct + '%';
+  const h = d.getHours();
+  document.getElementById('timeGreet').textContent = h < 12 ? 'morning' : h < 17 ? 'afternoon' : 'evening';
+  document.getElementById('userName').textContent = S.userName;
+  document.getElementById('sbOkrCount').textContent = S.okrs.length;
+  const todayDone = S.tasks.filter(t => t.date === today() && t.done).length;
+  const todayAll = S.tasks.filter(t => t.date === today()).length;
+  document.getElementById('sbTaskCount').textContent = `${todayDone}/${todayAll}`;
+  document.getElementById('sbBacklogCount').textContent = S.tasks.filter(t => !t.date).length;
+  document.getElementById('sbMindsetCount').textContent = `${mindsetWeekCount()}/3`;
+  const ms = morningTodayStatus();
+  document.getElementById('sbMorningCount').textContent = ms ? `${ms.done}/${ms.total}` : '—';
+}
+
+// ══════════════════════════════════════════════
+// DASHBOARD
+// ══════════════════════════════════════════════
+function renderDashboard() {
+  updateTopbar();
+  const todayStr = today();
+  const todayTasks = S.tasks.filter(t => t.date === todayStr);
+  const doneTasks = todayTasks.filter(t => t.done);
+  const mitDone = doneTasks.length;
+  const mitTotal = todayTasks.length;
+  const mitPct = mitTotal > 0 ? Math.round((mitDone / mitTotal) * 100) : 0;
+  document.getElementById('ds-mit-ring').innerHTML = ringStatHtml(mitPct, 'var(--g)', `${mitDone}/${mitTotal}`);
+  document.getElementById('ds-mit-t').textContent = mitTotal === 0 ? 'No tasks yet' : mitDone === mitTotal && mitTotal > 0 ? '✓ All done!' : `${mitTotal - mitDone} remaining`;
+  const wk = sprintWeek();
+  document.getElementById('dashWeekBadge').textContent = `Week ${wk}`;
+  const weekPct = weekTasksDone();
+  document.getElementById('ds-week-ring').innerHTML = ringStatHtml(weekPct, 'var(--sky)', weekPct + '%');
+  document.getElementById('ds-week-t').textContent = 'Task completion rate';
+  const streak = calcStreak();
+  const streakPct = Math.min(100, Math.round((streak / 7) * 100));
+  document.getElementById('ds-streak-ring').innerHTML = ringStatHtml(streakPct, 'var(--gb)', '🔥' + streak);
+  document.getElementById('ds-streak-t').textContent = streak > 0 ? `${streak} day${streak > 1 ? 's' : ''} in a row` : 'Start today!';
+  const deepH = calcDeepHours();
+  const deepPct = Math.min(100, Math.round((deepH / 4) * 100));
+  document.getElementById('ds-deep-ring').innerHTML = ringStatHtml(deepPct, 'var(--org)', deepH + 'h');
+  document.getElementById('ds-deep-t').textContent = 'scheduled today (goal: 4h)';
+
+  // MITs (+ overdue tasks carried over from earlier days)
+  const mitEl = document.getElementById('dashMITs');
+  const overdue = overdueTasks();
+  let mitHtml = '';
+  if (overdue.length > 0) {
+    mitHtml += `<div style="margin-bottom:10px;padding:8px;background:rgba(245,72,75,0.08);border:1px solid rgba(245,72,75,0.2);border-radius:8px;">
+      <div style="font-size:11px;color:var(--red);font-family:'Space Mono',monospace;margin-bottom:4px;">⚠ ${overdue.length} overdue</div>
+      ${overdue.map(t => overdueTaskHTML(t)).join('')}
+    </div>`;
+  }
+  // Scary Hour — today's dreaded tasks, pulled out and batched so they get
+  // knocked out in one sitting instead of lingering. Shown once here, so the
+  // regular list below excludes them to avoid listing the same task twice.
+  const scaryToday = todayTasks.filter(t => t.scary && !t.done);
+  const restToday = todayTasks.filter(t => !(t.scary && !t.done));
+  if (scaryToday.length > 0) {
+    mitHtml += `<div style="margin-bottom:10px;padding:8px;background:rgba(245,184,61,0.08);border:1px solid rgba(245,184,61,0.25);border-radius:8px;">
+      <div style="font-size:11px;color:var(--org);font-family:'Space Mono',monospace;margin-bottom:4px;">😱 Scary Hour — ${scaryToday.length} to crush</div>
+      ${scaryToday.map(t => taskHTML(t)).join('')}
+    </div>`;
+  }
+  if (todayTasks.length === 0) {
+    mitHtml += `<div style="color:var(--t3);font-size:13px;padding:0.5rem 0">No tasks for today. <a href="#" onclick="openModal('addTask');return false;">Add your first MIT →</a></div>`;
+  } else {
+    mitHtml += restToday.map(t => taskHTML(t)).join('');
+  }
+  const backlogCount = backlogTasks().length;
+  if (backlogCount > 0) {
+    mitHtml += `<div style="margin-top:8px;font-size:11px;color:var(--t3);">📥 ${backlogCount} idea${backlogCount > 1 ? 's' : ''} waiting in <a href="#" onclick="nav('backlog');return false;">Backlog</a></div>`;
+  }
+  mitEl.innerHTML = mitHtml;
+
+  // Blocks (template + any date-specific overrides for today)
+  const blockEl = document.getElementById('dashBlocks');
+  const todayBlocks = [...effectiveBlocksForDate(todayStr)].sort((a,b) => a.start.localeCompare(b.start));
+  const unscheduledHtml = unscheduledTasksHtml(todayStr);
+  if (todayBlocks.length === 0) {
+    blockEl.innerHTML = unscheduledHtml + `<div style="color:var(--t3);font-size:13px;padding:0.5rem 0">No blocks. <a href="#" onclick="openModal('addDayBlock', today());return false;">Add time blocks →</a></div>`;
+  } else {
+    blockEl.innerHTML = unscheduledHtml + todayBlocks.map(b => `
+      <div class="tb-block ${b.type}" style="margin-bottom:5px;" onclick="openModal('editDayBlock','${todayStr}|${b.id}')">
+        <div class="tb-block-time">${b.start} – ${b.end}</div>
+        <div class="tb-block-title">${escapeHtml(b.title)}</div>
+        ${blockTaskLinkHtml(b)}
+      </div>`).join('');
+  }
+
+  // OKR snapshot
+  const okrEl = document.getElementById('dashOKRs');
+  if (S.okrs.length === 0) {
+    okrEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:0.5rem 0">No OKRs yet. <a href="#" onclick="openModal('addOKR');return false;">Create your first OKR →</a></div>`;
+  } else {
+    okrEl.innerHTML = S.okrs.map(okr => {
+      const pct = okrPct(okr);
+      return `<div style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:5px;">
+          <div style="width:8px;height:8px;border-radius:50%;background:${okr.color};flex-shrink:0;"></div>
+          <div style="font-size:12px;font-weight:600;color:var(--t1);flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(okr.objective)}</div>
+          <div style="font-family:'Space Mono',monospace;font-size:10px;color:${krColor(pct)}">${pct}%</div>
+        </div>
+        <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${okr.color}"></div></div>
+      </div>`;
+    }).join('');
+  }
+
+  // Week bars
+  const days7 = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
+  const barsEl = document.getElementById('dashWeekBars');
+  const lblEl = document.getElementById('dashWeekLabels');
+  const { start: curWeekStart } = getWeekRange(0);
+  barsEl.innerHTML = days7.map((d, i) => {
+    const dDate = new Date(curWeekStart); dDate.setDate(curWeekStart.getDate() + i);
+    const ds = dDate.toISOString().split('T')[0];
+    const dayTasks = S.tasks.filter(t => t.date === ds);
+    const pct = dayTasks.length ? Math.round((dayTasks.filter(t => t.done).length / dayTasks.length) * 100) : 0;
+    return `<div class="wk-bar-wrap">
+      <div class="wk-bar-outer"><div class="wk-bar-inner" style="height:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+  lblEl.innerHTML = days7.map(d => `<div style="flex:1;text-align:center;font-family:'Space Mono',monospace;font-size:8px;color:var(--t3)">${d}</div>`).join('');
+
+  // Streak dots
+  renderStreakDots('dashStreak', 28);
+
+  // Morning Routine teaser
+  const dashMorningEl = document.getElementById('dashMorning');
+  const ms = morningTodayStatus();
+  const mStreak = calcMorningStreak();
+  if (!ms) {
+    dashMorningEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:0.5rem 0">🌴 Rest day — routine resumes Monday. Streak: 🔥 ${mStreak}.</div>`;
+  } else {
+    const allDone = ms.done === ms.total;
+    const morningPct = Math.round((ms.done / ms.total) * 100);
+    dashMorningEl.innerHTML = `<div style="display:flex;align-items:center;gap:12px;">
+      ${ringStatHtml(morningPct, 'var(--gb)', `${ms.done}/${ms.total}`, 56)}
+      <div>
+        <div style="font-size:13px;color:var(--t1);font-weight:600;">${allDone ? "You're ready. Go conquer! ⚔️" : ms.done === 0 ? 'Not started yet' : 'Keep going…'}</div>
+        <div style="font-size:11px;color:var(--t3);margin-top:2px;">🔥 ${mStreak} weekday${mStreak === 1 ? '' : 's'} in a row</div>
+      </div>
+    </div>`;
+  }
+
+  // Mindset teaser
+  const dashMindsetEl = document.getElementById('dashMindset');
+  const mWeek = mindsetWeekCount();
+  dashMindsetEl.innerHTML = `<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;">
+    <div>
+      <div style="font-size:22px;font-weight:700;color:var(--g);font-family:'Space Mono',monospace;">${mWeek}/3</div>
+      <div style="font-size:11px;color:var(--t3);">check-ins this week</div>
+    </div>
+    <div style="font-size:12px;color:var(--t2);max-width:170px;text-align:right;">${mWeek >= 3 ? '🎉 Goal hit this week!' : mWeek === 0 ? 'No check-in yet — when you have 5 min.' : 'Keep the gut-checks coming.'}</div>
+  </div>`;
+}
+
+function unionStreakDays() {
+  return Array.from(new Set([...(S.streaks.tasks||[]), ...(S.streaks.training||[]), ...(S.streaks.journal||[])]));
+}
+
+function calcStreakFor(days) {
+  const s = new Set(days);
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const ds = d.toISOString().split('T')[0];
+    if (s.has(ds)) { streak++; d.setDate(d.getDate() - 1); } else break;
+  }
+  return streak;
+}
+
+function calcStreak() {
+  return calcStreakFor(unionStreakDays());
+}
+
+// Like calcStreakFor, but for habits that only apply on weekdays (Mon–Fri):
+// a Friday→Monday gap doesn't break the streak, since weekends don't count.
+function calcWeekdayStreakFor(days) {
+  const s = new Set(days);
+  let streak = 0;
+  const d = new Date();
+  while (true) {
+    const dow = d.getDay();
+    if (dow === 0 || dow === 6) { d.setDate(d.getDate() - 1); continue; }
+    const ds = d.toISOString().split('T')[0];
+    if (s.has(ds)) { streak++; d.setDate(d.getDate() - 1); } else break;
+  }
+  return streak;
+}
+
+function calcDeepHours() {
+  const deepBlocks = effectiveBlocksForDate(today()).filter(b => b.type === 'deep');
+  let total = 0;
+  deepBlocks.forEach(b => {
+    const [sh, sm] = b.start.split(':').map(Number);
+    const [eh, em] = b.end.split(':').map(Number);
+    total += (eh * 60 + em - sh * 60 - sm) / 60;
+  });
+  return Math.round(total * 10) / 10;
+}
+
+function renderStreakDots(elId, count) {
+  const el = document.getElementById(elId);
+  if (!el) return;
+  const s = new Set(unionStreakDays());
+  const todayStr = today();
+  let dots = '';
+  for (let i = count - 1; i >= 0; i--) {
+    const d = new Date(); d.setDate(d.getDate() - i);
+    const ds = d.toISOString().split('T')[0];
+    const cls = ds === todayStr ? 's-today' : s.has(ds) ? 's-on' : 's-off';
+    dots += `<div class="streak-dot ${cls}" title="${ds}"></div>`;
+  }
+  el.innerHTML = dots;
+}
+
+// ══════════════════════════════════════════════
+// OKRs
+// ══════════════════════════════════════════════
+function renderOKRs() {
+  const filter = document.getElementById('okrFilter')?.value || 'all';
+  const list = document.getElementById('okrList');
+  const filtered = filter === 'all' ? S.okrs : S.okrs.filter(o => o.category === filter);
+  if (filtered.length === 0) {
+    list.innerHTML = `<div class="card" style="color:var(--t3);font-size:13px;text-align:center;padding:2rem;">No OKRs found. <a href="#" onclick="openModal('addOKR');return false;">Create your first →</a></div>`;
+    return;
+  }
+  list.innerHTML = filtered.map(okr => {
+    const pct = okrPct(okr);
+    return `<div class="okr-card">
+      <div class="okr-header" onclick="toggleOKR('${okr.id}')">
+        <div class="okr-color-bar" style="background:${okr.color}"></div>
+        <div class="okr-header-content">
+          <div class="okr-category"><span class="pill-chip" style="background:${okr.color};color:#0A0A0C;">${escapeHtml(okr.category.toUpperCase())}</span></div>
+          <div class="okr-objective">${escapeHtml(okr.objective)}</div>
+          <div class="okr-meta">
+            <span class="badge ${pct >= 70 ? 'badge-g' : pct >= 40 ? 'badge-o' : 'badge-r'}">${pct}%</span>
+            <div class="okr-progress-bar"><div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${okr.color}"></div></div></div>
+            <span style="font-size:11px;color:var(--t3)">${okr.krs.length} key results</span>
+          </div>
+        </div>
+        <div class="okr-actions" onclick="event.stopPropagation()">
+          <button class="icon-btn" onclick="openModal('editOKR','${okr.id}')"><i class="ti ti-edit"></i></button>
+          <button class="icon-btn" onclick="openModal('addKR','${okr.id}')"><i class="ti ti-plus"></i> KR</button>
+          <button class="icon-btn" onclick="openModal('addStep','${okr.id}')"><i class="ti ti-list-check"></i> Step</button>
+          <button class="icon-btn" style="color:var(--red)" onclick="deleteOKR('${okr.id}')"><i class="ti ti-trash"></i></button>
+        </div>
+      </div>
+      <div class="okr-body" id="okr-body-${okr.id}">
+        ${okr.krs.map(kr => {
+          const kpct = Math.min(100, Math.round((kr.current / Math.max(kr.target, 1)) * 100));
+          return `<div class="kr-row">
+            <div class="kr-num">KR</div>
+            <div class="kr-text">${escapeHtml(kr.text)}<br><span style="font-size:10px;color:var(--t3)">${kr.current} / ${kr.target} ${escapeHtml(kr.unit)}</span></div>
+            <div class="kr-bar-wrap"><div class="bar-track"><div class="bar-fill" style="width:${kpct}%;background:${krColor(kpct)}"></div></div></div>
+            <div class="kr-pct" style="color:${krColor(kpct)}">${kpct}%</div>
+            <button class="kr-edit-btn" onclick="openModal('updateKR','${okr.id}|${kr.id}')"><i class="ti ti-edit"></i></button>
+            <button class="kr-edit-btn" onclick="deleteKR('${okr.id}','${kr.id}')"><i class="ti ti-trash"></i></button>
+          </div>`;
+        }).join('')}
+        ${okr.krs.length === 0 ? '<div style="color:var(--t3);font-size:12px;padding:0.5rem 0">No key results yet.</div>' : ''}
+        ${okrPlanHtml(okr)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── OKR STEP PLAN ──────────────────────────────
+// A flat, checkable action plan per OKR — separate from Key Results (which
+// measure outcomes). Progress here is shown on its own and never blended
+// into okrPct(), by design.
+function okrPlanHtml(okr) {
+  const steps = okr.steps || [];
+  const done = steps.filter(s => s.done).length;
+  return `<div style="margin-top:${okr.krs.length ? '10px' : '4px'};padding-top:10px;border-top:1px solid rgba(255,255,255,0.06);">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+      <div style="font-family:'Space Mono',monospace;font-size:10px;text-transform:uppercase;letter-spacing:0.08em;color:var(--t3);">📋 Plan</div>
+      ${steps.length ? `<span style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);">${done}/${steps.length} steps</span>` : ''}
+    </div>
+    ${steps.length === 0
+      ? `<div style="color:var(--t3);font-size:12px;padding:2px 0 4px;">No plan yet. <a href="#" onclick="event.stopPropagation();openModal('addStep','${okr.id}');return false;">Add a step →</a></div>`
+      : steps.map(s => `<div style="display:flex;align-items:center;gap:9px;padding:5px 0;">
+          <div class="task-cb ${s.done ? 'done' : ''}" style="cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleStep('${okr.id}','${s.id}')"></div>
+          <div style="flex:1;font-size:12px;${s.done ? 'color:var(--t3);text-decoration:line-through;' : 'color:var(--t2);'}">${escapeHtml(s.text)}</div>
+          <button class="kr-edit-btn" title="Schedule for today" onclick="event.stopPropagation();scheduleStep('${okr.id}','${s.id}')"><i class="ti ti-calendar-plus"></i></button>
+          <button class="kr-edit-btn" onclick="event.stopPropagation();openModal('editStep','${okr.id}|${s.id}')"><i class="ti ti-edit"></i></button>
+          <button class="kr-edit-btn" onclick="event.stopPropagation();deleteStep('${okr.id}','${s.id}')"><i class="ti ti-trash"></i></button>
+        </div>`).join('')}
+  </div>`;
+}
+
+function toggleOKR(id) {
+  const body = document.getElementById('okr-body-' + id);
+  if (body) body.style.display = body.style.display === 'none' ? '' : 'none';
+}
+
+function deleteOKR(id) {
+  if (!confirm('Delete this OKR?')) return;
+  S.okrs = S.okrs.filter(o => o.id !== id);
+  save(); renderOKRs(); toast('OKR deleted');
+}
+
+function deleteKR(okrId, krId) {
+  if (!confirm('Delete this key result?')) return;
+  const okr = S.okrs.find(o => o.id === okrId);
+  if (!okr) return;
+  okr.krs = okr.krs.filter(k => k.id !== krId);
+  save(); renderOKRs(); toast('Key result deleted');
+}
+
+function toggleStep(okrId, stepId) {
+  const okr = S.okrs.find(o => o.id === okrId);
+  const step = okr?.steps.find(s => s.id === stepId);
+  if (!step) return;
+  step.done = !step.done;
+  save(); renderOKRs();
+}
+
+function deleteStep(okrId, stepId) {
+  if (!confirm('Delete this step?')) return;
+  const okr = S.okrs.find(o => o.id === okrId);
+  if (!okr) return;
+  okr.steps = okr.steps.filter(s => s.id !== stepId);
+  save(); renderOKRs(); toast('Step deleted');
+}
+
+// Turn a plan step into an actual dated Daily MIT, linked back to this OKR —
+// same "quick schedule" pattern used for the Backlog.
+function scheduleStep(okrId, stepId) {
+  const okr = S.okrs.find(o => o.id === okrId);
+  const step = okr?.steps.find(s => s.id === stepId);
+  if (!step) return;
+  S.tasks.push({ id: uid(), title: step.text, date: today(), category: okr.category, mit: true, okrLink: okrId, repeat: 'none', done: false });
+  save(); renderPage(currentPage); updateTopbar(); toast('Scheduled for today as a Daily MIT ✓');
+}
+
+// ══════════════════════════════════════════════
+// TASKS
+// ══════════════════════════════════════════════
+// Category → tag CSS class, shared by every task-row renderer below.
+function categoryTagClass(cat) {
+  const tagMap = { training:'tag-deep', work:'tag-review', personal:'tag-learn', health:'tag-ship' };
+  return tagMap[cat] || 'tag-learn';
+}
+
+// Shared row renderer behind taskHTML/overdueTaskHTML/backlogItemHtml — these
+// three used to each hand-roll a near-identical "task-item" block (checkbox,
+// title, meta badges, action buttons). Kept as one function so a markup
+// tweak (e.g. a new badge) only needs to happen in one place.
+//   opts.showDate    — show the task's date as a meta badge
+//   opts.dateColor   — override that date badge's color (e.g. red for overdue)
+//   opts.leadingIcon — replace the checkbox with a static icon (e.g. backlog's inbox icon)
+//   opts.clickable   — whether the row itself toggles done on click
+//   opts.actions     — 'default' (edit+delete) | 'overdue' (bump+delete) | 'backlog' (schedule+edit+delete)
+//   opts.metaMode    — 'full' (MIT+category+date+OKR+repeat) | 'overdue' ([date, category] only)
+//                      | 'backlog' ([category, OKR] only) — each preserves that view's original field set
+function taskRowHtml(t, opts = {}) {
+  const { showDate = false, dateColor = null, leadingIcon = null, clickable = true, actions = 'default', metaMode = 'full' } = opts;
+  const tagCls = categoryTagClass(t.category);
+  const categoryBadge = `<span class="task-tag ${tagCls}">${escapeHtml(t.category || 'task')}</span>`;
+  const dateBadge = showDate ? `<span style="font-size:10px;color:${dateColor || 'var(--t3)'}">${formatDate(t.date)}</span>` : '';
+  const okrBadge = t.okrLink ? `<span style="font-size:10px;color:var(--g)">→ OKR</span>` : '';
+
+  const leading = leadingIcon
+    ? `<i class="ti ${leadingIcon}" style="font-size:14px;color:var(--t3);margin-top:2px;flex-shrink:0;"></i>`
+    : `<div class="task-cb ${t.done ? 'done' : ''}"></div>`;
+
+  const scaryBadge = t.scary ? '<span class="scary-badge">😱 SCARY</span>' : '';
+  // A follow-up task stays "open" (tracked) until explicitly closed, independent
+  // of its daily done checkbox — closing is a separate action in the edit modal.
+  const followUpBadge = t.followUp ? (t.closed ? '<span class="closed-badge">✓ Closed</span>' : '<span class="followup-badge">🔁 Follow-up</span>') : '';
+
+  const metaByMode = {
+    overdue: [dateBadge, categoryBadge, scaryBadge, followUpBadge].join(''),
+    backlog: [categoryBadge, okrBadge, scaryBadge, followUpBadge].join(''),
+    full: [
+      t.mit ? '<span class="mit-badge">MIT</span>' : '',
+      scaryBadge, followUpBadge,
+      categoryBadge, dateBadge, okrBadge,
+      (t.repeat && t.repeat !== 'none') ? `<i class="ti ti-repeat" style="font-size:11px;color:var(--t3)" title="Recurring: ${t.repeat}"></i>` : '',
+    ].join(''),
+  };
+  const meta = metaByMode[metaMode];
+
+  const actionsByMode = {
+    default: `<button class="task-act-btn" onclick="openModal('editTask','${t.id}')"><i class="ti ti-edit"></i></button>
+      <button class="task-act-btn" onclick="deleteTask('${t.id}')"><i class="ti ti-trash"></i></button>`,
+    overdue: `<button class="task-act-btn" onclick="pushToScaryHour('${t.id}')" title="Push to Scary Hour"><i class="ti ti-alert-triangle"></i></button>
+      <button class="task-act-btn" onclick="bumpTaskToToday('${t.id}')" title="Move to today"><i class="ti ti-arrow-right"></i></button>
+      <button class="task-act-btn" onclick="deleteTask('${t.id}')"><i class="ti ti-trash"></i></button>`,
+    backlog: `<button class="icon-btn" style="padding:3px 9px;font-size:11px;" onclick="scheduleBacklogTask('${t.id}', today())"><i class="ti ti-calendar-plus"></i> Today</button>
+      <button class="task-act-btn" onclick="pushToScaryHour('${t.id}')" title="Push to Scary Hour"><i class="ti ti-alert-triangle"></i></button>
+      <button class="task-act-btn" onclick="openModal('editTask','${t.id}')"><i class="ti ti-edit"></i></button>
+      <button class="task-act-btn" onclick="deleteTask('${t.id}')"><i class="ti ti-trash"></i></button>`,
+  };
+  const actionsOpacity = actions === 'default' ? '' : ' style="opacity:1;"';
+  const actionsStop = clickable ? ' onclick="event.stopPropagation()"' : '';
+
+  return `<div class="task-item ${t.done ? 'done-item' : ''}" id="ti-${t.id}"${clickable ? ` onclick="toggleTask('${t.id}')"` : ''}>
+    ${leading}
+    <div class="task-body">
+      <div class="task-title">${escapeHtml(t.title)}</div>
+      <div class="task-meta">${meta}</div>
+    </div>
+    <div class="task-actions"${actionsStop}${actionsOpacity}>
+      ${actionsByMode[actions]}
+    </div>
+  </div>`;
+}
+
+function taskHTML(t, showDate = false) {
+  return taskRowHtml(t, { showDate, actions: 'default', clickable: true, metaMode: 'full' });
+}
+
+function overdueTaskHTML(t) {
+  return taskRowHtml(t, { showDate: true, dateColor: 'var(--red)', actions: 'overdue', clickable: true, metaMode: 'overdue' });
+}
+
+let taskViewMode = 'list';
+
+function setTaskViewMode(mode) {
+  taskViewMode = mode;
+  document.getElementById('taskViewListBtn')?.classList.toggle('active', mode === 'list');
+  document.getElementById('taskViewBoardBtn')?.classList.toggle('active', mode === 'board');
+  const listWrap = document.getElementById('taskListWrap');
+  const board = document.getElementById('taskBoard');
+  if (listWrap) listWrap.style.display = mode === 'list' ? '' : 'none';
+  if (board) board.style.display = mode === 'board' ? '' : 'none';
+  renderTasks();
+}
+
+function categoryPillColor(cat) {
+  const map = { training: '#A25DDC', work: '#4DA3FF', personal: '#F0529C', health: '#F5B83D' };
+  return map[cat] || '#8A8A94';
+}
+
+// All pill backgrounds are bright/flat, so dark ink text keeps every pill readable.
+function categoryPillTextColor(cat) {
+  return '#0A0A0C';
+}
+
+function taskBoardColumns() {
+  const t = today();
+  return [
+    { key: 'overdue', label: 'Overdue', color: 'var(--mc-red)', match: x => x.date && !x.done && x.date < t },
+    { key: 'today', label: 'Today', color: 'var(--mc-tangerine)', match: x => !x.done && x.date === t },
+    { key: 'upcoming', label: 'Upcoming', color: 'var(--mc-blue)', match: x => x.date && !x.done && x.date > t },
+    { key: 'done', label: 'Done', color: 'var(--mc-green)', match: x => x.done },
+  ];
+}
+
+function kanbanCardHtml(t) {
+  const catColor = categoryPillColor(t.category);
+  const catText = categoryPillTextColor(t.category);
+  return `<div class="kanban-card" style="border-left-color:${catColor}" onclick="openModal('editTask','${t.id}')">
+    <div class="kanban-card-title">${escapeHtml(t.title)}</div>
+    <div class="kanban-card-meta">
+      ${t.mit ? '<span class="pill-chip" style="background:var(--mc-red);color:#fff;">MIT</span>' : ''}
+      <span class="pill-chip" style="background:${catColor};color:${catText};">${escapeHtml(t.category || 'task')}</span>
+      <span style="font-size:9px;color:var(--t3);margin-left:auto;">${formatDate(t.date)}</span>
+    </div>
+  </div>`;
+}
+
+function renderTaskBoard() {
+  const filter = document.getElementById('taskFilter')?.value || 'all';
+  const catFilter = document.getElementById('taskCatFilter')?.value || 'all';
+  let tasks = S.tasks.filter(t => t.date); // Backlog items (no date) live on their own page
+  if (filter === 'scary') tasks = tasks.filter(t => t.scary);
+  if (filter === 'followup') tasks = tasks.filter(t => t.followUp && !t.closed);
+  if (catFilter !== 'all') tasks = tasks.filter(t => t.category === catFilter);
+  const el = document.getElementById('taskBoard');
+  if (!el) return;
+  el.innerHTML = taskBoardColumns().map(col => {
+    const items = tasks.filter(col.match).sort((a, b) => a.date.localeCompare(b.date));
+    return `<div class="kanban-col">
+      <div class="kanban-col-head">
+        <span class="kanban-col-dot" style="background:${col.color}"></span>
+        <span class="kanban-col-title" style="color:${col.color}">${col.label}</span>
+        <span class="kanban-count">${items.length}</span>
+      </div>
+      ${items.length ? items.map(kanbanCardHtml).join('') : '<div class="kanban-empty">Empty</div>'}
+    </div>`;
+  }).join('');
+}
+
+function renderTasks() {
+  const filter = document.getElementById('taskFilter')?.value || 'all';
+  const catFilter = document.getElementById('taskCatFilter')?.value || 'all';
+  let tasks = S.tasks.filter(t => t.date).sort((a, b) => b.date.localeCompare(a.date)); // Backlog items (no date) live on their own page
+  if (filter === 'today') tasks = tasks.filter(t => t.date === today());
+  if (filter === 'overdue') tasks = tasks.filter(t => !t.done && t.date < today());
+  if (filter === 'pending') tasks = tasks.filter(t => !t.done);
+  if (filter === 'done') tasks = tasks.filter(t => t.done);
+  if (filter === 'scary') tasks = tasks.filter(t => t.scary);
+  if (filter === 'followup') tasks = tasks.filter(t => t.followUp && !t.closed);
+  if (catFilter !== 'all') tasks = tasks.filter(t => t.category === catFilter);
+  const el = document.getElementById('taskList');
+  el.innerHTML = tasks.length === 0
+    ? `<div style="color:var(--t3);font-size:13px;padding:1rem 0;text-align:center">No tasks match this filter.</div>`
+    : tasks.map(t => taskHTML(t, true)).join('');
+  renderTaskBoard();
+}
+
+function toggleTask(id) {
+  const t = S.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.done = !t.done;
+  if (t.done && !S.streaks.tasks.includes(today())) { S.streaks.tasks.push(today()); }
+  save();
+  const el = document.getElementById('ti-' + id);
+  if (el) {
+    el.classList.toggle('done-item', t.done);
+    const cb = el.querySelector('.task-cb');
+    if (cb) cb.classList.toggle('done', t.done);
+  }
+  updateTopbar();
+  toast(t.done ? 'Task completed! 🎉' : 'Task unmarked');
+  if (currentPage === 'dashboard') renderDashboard();
+  if (currentPage === 'timeblocks') renderBlocks();
+}
+
+function deleteTask(id) {
+  if (!confirm('Delete this task?')) return;
+  S.tasks = S.tasks.filter(t => t.id !== id);
+  save(); renderPage(currentPage); updateTopbar(); toast('Task deleted');
+}
+
+// Deletes completed tasks older than 30 days. Never touches the last 30 days
+// so it can't retroactively break the Dashboard's streak or 28-day
+// Consistency widget, and skips any open (unclosed) follow-up so an active
+// thread is never wiped out just because it's old.
+function purgeOldDoneTasks() {
+  const cutoff = new Date();
+  cutoff.setDate(cutoff.getDate() - 30);
+  const cutoffStr = cutoff.toISOString().split('T')[0];
+  const candidates = S.tasks.filter(t => t.done && t.date && t.date < cutoffStr && !(t.followUp && !t.closed));
+  if (candidates.length === 0) { toast('Nothing to purge — no completed tasks older than 30 days'); return; }
+  if (!confirm(`Permanently delete ${candidates.length} completed task(s) older than 30 days? This can't be undone.`)) return;
+  const ids = new Set(candidates.map(t => t.id));
+  S.tasks = S.tasks.filter(t => !ids.has(t.id));
+  save(); renderPage(currentPage); updateTopbar();
+  toast(`${candidates.length} task(s) purged ✓`);
+}
+
+// ══════════════════════════════════════════════
+// BACKLOG — undated tasks/ideas (GTD holding area)
+// ══════════════════════════════════════════════
+function backlogItemHtml(t) {
+  return taskRowHtml(t, { leadingIcon: 'ti-inbox', clickable: false, actions: 'backlog', metaMode: 'backlog' });
+}
+
+function scheduleBacklogTask(id, dateStr) {
+  const t = S.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.date = dateStr;
+  save(); renderPage(currentPage); updateTopbar(); toast('Scheduled for ' + formatDate(dateStr) + ' ✓');
+}
+
+function renderBacklog() {
+  const catFilter = document.getElementById('backlogCatFilter')?.value || 'all';
+  let list = backlogTasks();
+  if (catFilter !== 'all') list = list.filter(t => t.category === catFilter);
+  const el = document.getElementById('backlogList');
+  if (!el) return;
+  el.innerHTML = list.length === 0
+    ? `<div style="color:var(--t3);font-size:13px;padding:1rem 0;text-align:center">Backlog is empty. <a href="#" onclick="openModal('addBacklogTask');return false;">Capture an idea →</a></div>`
+    : list.map(t => backlogItemHtml(t)).join('');
+}
+
+// Parse a pasted, possibly-indented list into a flat array of task titles.
+// A line ending in ":" with no more than 3 words (e.g. "Thales:") is treated
+// as a pure group header — it isn't added as its own task, but any more
+// indented lines under it get prefixed with it ("Thales – Performance platform").
+// Any other line is added as its own task AND can still act as a prefix for
+// lines indented beneath it (e.g. "Percall : Safran AED RFP" → itself, plus
+// "Percall : Safran AED RFP – Solace Material" for an indented child).
+function parseBulkTaskLines(raw) {
+  const lines = [];
+  (raw || '').split('\n').forEach(line => {
+    if (!line.trim()) return;
+    const leading = line.match(/^[\t ]*/)[0];
+    const indent = leading.replace(/\t/g, '  ').length;
+    const text = line.trim().replace(/^[-*•–]\s*/, '').trim();
+    if (text) lines.push({ indent, text });
+  });
+  const results = [];
+  const stack = []; // ancestors: {indent, text}
+  lines.forEach(({ indent, text }) => {
+    while (stack.length && stack[stack.length - 1].indent >= indent) stack.pop();
+    const isPureLabel = /:$/.test(text) && text.replace(/:$/, '').trim().split(/\s+/).length <= 3;
+    const cleanText = text.replace(/:$/, '').trim();
+    if (!isPureLabel) {
+      const prefix = stack.map(s => s.text).join(' – ');
+      results.push(prefix ? `${prefix} – ${cleanText}` : cleanText);
+    }
+    stack.push({ indent, text: cleanText });
+  });
+  return results;
+}
+
+function saveBulkBacklog() {
+  const raw = document.getElementById('mBulkText')?.value || '';
+  const category = document.getElementById('mBulkCat')?.value || 'work';
+  const titles = parseBulkTaskLines(raw);
+  if (titles.length === 0) { alert('Paste at least one line.'); return; }
+  titles.forEach(title => {
+    S.tasks.push({ id: uid(), title, date: '', category, mit: false, okrLink: '', repeat: 'none', done: false });
+  });
+  save(); closeModal(); renderPage(currentPage); updateTopbar();
+  toast(`${titles.length} task${titles.length > 1 ? 's' : ''} added to backlog ✓`);
+}
+
+// ══════════════════════════════════════════════
+// BLOCKS
+// ══════════════════════════════════════════════
+let tbCalendarSelectedDate = today();
+
+// Resolve the task/MIT linked to a time block, if any.
+function linkedTaskForBlock(b) {
+  if (!b || !b.taskLink) return null;
+  return S.tasks.find(t => t.id === b.taskLink) || null;
+}
+
+// Small inline strip shown inside a block tile when a task/MIT is linked to it —
+// title + a mini checkbox so it can be toggled done right from the block.
+function blockTaskLinkHtml(b) {
+  const t = linkedTaskForBlock(b);
+  if (!t) return '';
+  return `<div style="display:flex;align-items:center;gap:6px;margin-top:5px;padding-top:5px;border-top:1px solid rgba(255,255,255,0.06);" onclick="event.stopPropagation()">
+    <div class="task-cb ${t.done ? 'done' : ''}" style="width:13px;height:13px;cursor:pointer;flex-shrink:0;" onclick="event.stopPropagation();toggleTask('${t.id}')"></div>
+    <span style="font-size:11px;flex:1;${t.done ? 'color:var(--t3);text-decoration:line-through;' : 'color:var(--t1);'}">${escapeHtml(t.title)}</span>
+    ${t.mit ? '<span class="mit-badge" style="padding:1px 7px;font-size:8px;">MIT</span>' : ''}
+  </div>`;
+}
+
+function dayBlockHtml(b, dateStr) {
+  return `<div class="tb-block ${b.type}" style="margin-bottom:6px;" onclick="openModal('editDayBlock','${dateStr}|${b.id}')">
+    <div class="tb-block-time">${b.start} – ${b.end} · ${blockTypeLabel(b.type)}</div>
+    <div class="tb-block-title">${escapeHtml(b.title)}</div>
+    ${blockTaskLinkHtml(b)}
+    <div style="display:flex;gap:6px;margin-top:4px;">
+      <button class="task-act-btn" onclick="event.stopPropagation();openModal('editDayBlock','${dateStr}|${b.id}')"><i class="ti ti-edit" style="font-size:12px"></i></button>
+      <button class="task-act-btn" onclick="event.stopPropagation();deleteDayBlock('${dateStr}','${b.id}')"><i class="ti ti-trash" style="font-size:12px"></i></button>
+    </div>
+  </div>`;
+}
+
+function onTbCalendarDateChange(v) {
+  tbCalendarSelectedDate = v || today();
+  renderBlocks();
+}
+
+function renderBlocks() {
+  const dateInput = document.getElementById('tbCalendarDate');
+  if (dateInput) dateInput.value = tbCalendarSelectedDate;
+  const hasOverride = !!S.blockOverrides[tbCalendarSelectedDate];
+  const resetBtn = document.getElementById('blockDayResetBtn');
+  if (resetBtn) resetBtn.style.display = hasOverride ? '' : 'none';
+  const dayBlocks = [...effectiveBlocksForDate(tbCalendarSelectedDate)].sort((a,b) => a.start.localeCompare(b.start));
+  const agendaEl = document.getElementById('blockDayAgenda');
+  if (agendaEl) {
+    agendaEl.innerHTML = unscheduledTasksHtml(tbCalendarSelectedDate) + (dayBlocks.length
+      ? dayBlocks.map(b => dayBlockHtml(b, tbCalendarSelectedDate)).join('')
+      : '<div style="color:var(--t3);font-size:12px;padding:0.5rem 0">No blocks for this day.</div>');
+  }
+
+  const weekday = S.blocks.filter(b => b.day === 'weekday').sort((a,b) => a.start.localeCompare(b.start));
+  const weekend = S.blocks.filter(b => b.day === 'weekend').sort((a,b) => a.start.localeCompare(b.start));
+  const blockHtml = (b) => `<div class="tb-block ${b.type}" style="margin-bottom:6px;" onclick="openModal('editBlock','${b.id}')">
+    <div class="tb-block-time">${b.start} – ${b.end} · ${blockTypeLabel(b.type)}</div>
+    <div class="tb-block-title">${escapeHtml(b.title)}</div>
+    <div style="display:flex;gap:6px;margin-top:4px;">
+      <button class="task-act-btn" onclick="event.stopPropagation();openModal('editBlock','${b.id}')"><i class="ti ti-edit" style="font-size:12px"></i></button>
+      <button class="task-act-btn" onclick="event.stopPropagation();deleteBlock('${b.id}')"><i class="ti ti-trash" style="font-size:12px"></i></button>
+    </div>
+  </div>`;
+  document.getElementById('blockListWeekday').innerHTML = weekday.length ? weekday.map(blockHtml).join('') : '<div style="color:var(--t3);font-size:12px">No weekday blocks yet.</div>';
+  document.getElementById('blockListWeekend').innerHTML = weekend.length ? weekend.map(blockHtml).join('') : '<div style="color:var(--t3);font-size:12px">No weekend blocks yet.</div>';
+}
+
+// Rebuild the "Link to Task / MIT" options when the modal's Date field
+// changes, so the list always reflects that day's Daily MITs.
+function onBlockDateChange(newDateStr) {
+  const sel = document.getElementById('mBTaskLink');
+  const hint = document.getElementById('mBTaskLinkHint');
+  if (!sel) return;
+  const prevSelected = sel.value;
+  const dayTasks = S.tasks.filter(t => t.date === newDateStr);
+  const stillValid = dayTasks.some(t => t.id === prevSelected);
+  sel.innerHTML = `<option value="">No task linked</option>` +
+    dayTasks.map(t => `<option value="${t.id}" ${stillValid && t.id === prevSelected ? 'selected' : ''}>${t.mit ? '★ ' : ''}${escapeHtml(t.title)}</option>`).join('');
+  if (hint) hint.style.display = dayTasks.length === 0 ? '' : 'none';
+}
+
+function saveDayBlock(oldDateStr, id) {
+  const title = document.getElementById('mBTitle')?.value.trim();
+  if (!title) { alert('Please enter a title'); return; }
+  const newDateStr = document.getElementById('mBDate')?.value || oldDateStr;
+  const data = { title, start: document.getElementById('mBStart').value, end: document.getElementById('mBEnd').value, type: document.getElementById('mBType').value, taskLink: document.getElementById('mBTaskLink')?.value || '' };
+
+  // Keep the linked Daily MIT in sync: scheduling a block for a different
+  // date (e.g. a month out) moves the task itself to that date too.
+  if (data.taskLink) {
+    const linkedTask = S.tasks.find(t => t.id === data.taskLink);
+    if (linkedTask && linkedTask.date !== newDateStr) linkedTask.date = newDateStr;
+  }
+
+  function ensureOverride(dateStr) {
+    if (!S.blockOverrides[dateStr]) {
+      S.blockOverrides[dateStr] = effectiveBlocksForDate(dateStr).map(b => ({ ...b }));
+    }
+    return S.blockOverrides[dateStr];
+  }
+
+  if (id) {
+    const oldList = ensureOverride(oldDateStr);
+    const b = oldList.find(x => x.id === id);
+    if (b) {
+      if (newDateStr !== oldDateStr) {
+        // Moving this block to a different date: remove from the old
+        // date's override list and re-add under the new date.
+        oldList.splice(oldList.indexOf(b), 1);
+        ensureOverride(newDateStr).push({ ...b, ...data });
+      } else {
+        Object.assign(b, data);
+      }
+    }
+  } else {
+    ensureOverride(newDateStr).push({ id: uid(), ...data });
+  }
+  save(); closeModal(); renderPage(currentPage); if (currentPage === 'dashboard') renderDashboard();
+  updateTopbar();
+  toast(newDateStr !== oldDateStr ? 'Scheduled for ' + formatDate(newDateStr) + ' ✓' : 'Block saved ✓');
+}
+
+function deleteDayBlock(dateStr, id) {
+  if (!confirm('Delete this block for this date only? The template stays unchanged.')) return;
+  if (!S.blockOverrides[dateStr]) {
+    S.blockOverrides[dateStr] = effectiveBlocksForDate(dateStr).map(b => ({ ...b }));
+  }
+  S.blockOverrides[dateStr] = S.blockOverrides[dateStr].filter(b => b.id !== id);
+  save(); renderPage(currentPage); if (currentPage === 'dashboard') renderDashboard(); toast('Block removed for this day');
+}
+
+function resetDayOverride(dateStr) {
+  if (!confirm('Reset this date back to the default template?')) return;
+  delete S.blockOverrides[dateStr];
+  save(); renderPage(currentPage); if (currentPage === 'dashboard') renderDashboard(); toast('Day reset to template');
+}
+
+function deleteBlock(id) {
+  if (!confirm('Delete this time block?')) return;
+  S.blocks = S.blocks.filter(b => b.id !== id);
+  save(); renderPage(currentPage); toast('Block deleted');
+}
+
+// ══════════════════════════════════════════════
+// WEEKLY
+// ══════════════════════════════════════════════
+function renderWeekly() {
+  const wk = sprintWeek();
+  const el = document.getElementById('weeklyPhaseSummary');
+  el.innerHTML = PLAN.map(p => {
+    const total = p.weeks.flatMap(w => w.tasks).length;
+    const done = p.weeks.flatMap(w => w.tasks).filter(t => S.trainingDone.includes(t.id)).length;
+    const pct = Math.round((done/total)*100);
+    return `<div class="stat-card">
+      <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.1em;color:${p.color};margin-bottom:4px">${p.label}</div>
+      <div style="font-size:13px;font-weight:600;color:var(--t1);margin-bottom:8px">${p.name}</div>
+      <div class="bar-track"><div class="bar-fill" style="width:${pct}%;background:${p.color}"></div></div>
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:${p.color};margin-top:4px">${done}/${total} · ${pct}%</div>
+    </div>`;
+  }).join('');
+
+  const scoreEl = document.getElementById('weeklyScoreChart');
+  const weeks12 = Array.from({length:12},(_,i) => i+1);
+  scoreEl.innerHTML = `<div style="display:flex;gap:4px;align-items:flex-end;height:80px;margin-bottom:6px;">` +
+    weeks12.map(w => {
+      const score = w <= wk ? (S.weekScores['w' + w] !== undefined ? S.weekScores['w' + w] : sprintWeekTasksDone(w)) : 0;
+      const active = w === wk;
+      return `<div style="flex:1;display:flex;flex-direction:column;align-items:center;gap:2px;">
+        <div style="width:100%;height:70px;background:rgba(255,255,255,0.05);border-radius:4px;display:flex;flex-direction:column;justify-content:flex-end;overflow:hidden;">
+          <div style="background:${active ? 'var(--gb)' : 'var(--g)'};height:${score}%;border-radius:4px;opacity:${w > wk ? 0.2 : 1}"></div>
+        </div>
+        <div style="font-family:'Space Mono',monospace;font-size:7px;color:var(--t3)">W${w}</div>
+      </div>`;
+    }).join('') + `</div>`;
+
+  const refEl = document.getElementById('weeklyReflections');
+  if (S.reflections.length === 0) {
+    refEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:0.5rem 0">No reflections yet. <a href="#" onclick="openModal('addReflection');return false;">Add this week's →</a></div>`;
+  } else {
+    refEl.innerHTML = S.reflections.slice(-3).reverse().map(r => `
+      <div class="journal-entry">
+        <div class="je-date">Week ${r.week} · ${formatDate(r.date)}</div>
+        <div class="je-text"><strong style="color:var(--t1)">Wins:</strong> ${escapeHtml(r.wins)}<br><strong style="color:var(--t1)">Improve:</strong> ${escapeHtml(r.improve)}</div>
+      </div>`).join('');
+  }
+
+  if (weeklyReviewSelectedWeek === null) weeklyReviewSelectedWeek = wk;
+  renderWeeklyCelebration(weeklyReviewSelectedWeek);
+}
+
+let weeklyReviewSelectedWeek = null;
+
+function shiftWeeklyReviewWeek(delta) {
+  const base = weeklyReviewSelectedWeek === null ? sprintWeek() : weeklyReviewSelectedWeek;
+  weeklyReviewSelectedWeek = Math.min(12, Math.max(1, base + delta));
+  renderWeekly();
+}
+
+function tasksDoneInSprintWeek(w) {
+  const { start, end } = sprintWeekRange(w);
+  return S.tasks.filter(t => {
+    if (!t.done) return false;
+    const d = new Date(t.date);
+    return d >= start && d <= end;
+  });
+}
+
+function renderWeeklyCelebration(w) {
+  const doneTasks = tasksDoneInSprintWeek(w).sort((a, b) => a.date.localeCompare(b.date));
+  const { start, end } = sprintWeekRange(w);
+
+  document.getElementById('weeklyCelebWeekNum').textContent = w;
+  document.getElementById('weeklyCelebRange').textContent = `${formatDate(start)} – ${formatDate(end)}`;
+  document.getElementById('weeklyCelebPrevBtn').disabled = w <= 1;
+  document.getElementById('weeklyCelebNextBtn').disabled = w >= 12;
+
+  const total = doneTasks.length;
+  const mitCount = doneTasks.filter(t => t.mit).length;
+
+  const curWk = sprintWeek();
+  let bestCount = 0;
+  for (let i = 1; i <= curWk; i++) {
+    bestCount = Math.max(bestCount, tasksDoneInSprintWeek(i).length);
+  }
+  const isBestWeek = total > 0 && total === bestCount && curWk > 1;
+
+  document.getElementById('weeklyCelebStats').innerHTML = [
+    { n: total, l: 'Completed', c: 'var(--g)' },
+    { n: mitCount, l: 'MITs', c: 'var(--mc-red)' },
+    { n: total - mitCount, l: 'Other tasks', c: 'var(--mc-blue)' },
+  ].map(s => `<div class="stat-card"><div class="sn" style="color:${s.c}">${s.n}</div><div class="sl">${s.l}</div></div>`).join('');
+
+  const listEl = document.getElementById('weeklyCelebList');
+  if (total === 0) {
+    listEl.innerHTML = `<div style="color:var(--t3);font-size:13px;padding:0.75rem 0;text-align:center">Nothing checked off yet for this week — plenty of time left to make it count.</div>`;
+    return;
+  }
+
+  let html = '';
+  if (isBestWeek) {
+    html += `<div style="margin-bottom:10px;padding:8px 10px;background:rgba(255,203,0,0.1);border:1px solid rgba(255,203,0,0.3);border-radius:10px;font-size:12px;color:var(--mc-yellow);">🏆 Best week of the sprint so far!</div>`;
+  }
+
+  const byDate = {};
+  doneTasks.forEach(t => { (byDate[t.date] = byDate[t.date] || []).push(t); });
+  html += Object.keys(byDate).sort().map(dateStr => `
+    <div style="margin-bottom:10px;">
+      <div style="font-family:'Space Mono',monospace;font-size:10px;color:var(--t3);text-transform:uppercase;letter-spacing:0.06em;margin-bottom:6px;">${formatDate(dateStr)}</div>
+      ${byDate[dateStr].map(t => `
+        <div style="display:flex;align-items:center;gap:8px;padding:6px 0;">
+          <i class="ti ti-circle-check" style="color:var(--g);font-size:15px;flex-shrink:0;"></i>
+          <div style="flex:1;font-size:13px;color:var(--t1);">${escapeHtml(t.title)}</div>
+          ${t.mit ? '<span class="pill-chip" style="background:var(--mc-red);color:#fff;">MIT</span>' : ''}
+          <span class="pill-chip" style="background:${categoryPillColor(t.category)};color:${categoryPillTextColor(t.category)};">${escapeHtml(t.category || 'task')}</span>
+        </div>`).join('')}
+    </div>`).join('');
+
+  listEl.innerHTML = html;
+}
+
+// ══════════════════════════════════════════════
+// ANALYTICS
+// ══════════════════════════════════════════════
+function renderAnalytics() {
+  const totalTraining = PLAN.flatMap(p => p.weeks.flatMap(w => w.tasks)).length;
+  const doneTraining = S.trainingDone.length;
+  const totalOKRPct = S.okrs.length ? Math.round(S.okrs.reduce((a,o) => a + okrPct(o), 0) / S.okrs.length) : 0;
+  const totalTasks = S.tasks.length;
+  const doneTasks = S.tasks.filter(t => t.done).length;
+
+  document.getElementById('analyticsStats').innerHTML = [
+    { n: doneTraining + '/' + totalTraining, l: 'Training tasks', t: trainingDonePct() + '% done' },
+    { n: totalOKRPct + '%', l: 'Avg OKR progress', t: S.okrs.length + ' objectives' },
+    { n: doneTasks + '/' + totalTasks, l: 'Tasks completed', t: 'all time' },
+    { n: '🔥 ' + calcStreak(), l: 'Day streak', t: 'consistency' },
+  ].map(s => `<div class="stat-card"><div class="sn">${s.n}</div><div class="sl">${s.l}</div><div class="st">${s.t}</div></div>`).join('');
+
+  document.getElementById('analyticsOKR').innerHTML = S.okrs.length === 0
+    ? '<div style="color:var(--t3);font-size:13px">No OKRs yet.</div>'
+    : S.okrs.map(o => {
+        const pct = okrPct(o);
+        return `<div class="phase-progress-row">
+          <div class="pp-label">${escapeHtml(o.objective.substring(0,40))}${o.objective.length>40?'…':''}</div>
+          <div class="pp-bar"><div class="pp-fill" style="width:${pct}%;background:${o.color}"></div></div>
+          <div class="pp-pct" style="color:${o.color}">${pct}%</div>
+        </div>`;
+      }).join('');
+
+  document.getElementById('analyticsTraining').innerHTML = PLAN.map(p => {
+    const total = p.weeks.flatMap(w => w.tasks).length;
+    const done = p.weeks.flatMap(w => w.tasks).filter(t => S.trainingDone.includes(t.id)).length;
+    const pct = Math.round((done/total)*100);
+    return `<div class="phase-progress-row">
+      <div class="pp-label">${p.label} — ${p.name}</div>
+      <div class="pp-bar"><div class="pp-fill" style="width:${pct}%;background:${p.color}"></div></div>
+      <div class="pp-pct" style="color:${p.color}">${pct}%</div>
+    </div>`;
+  }).join('');
+
+  document.getElementById('analyticsStreaks').innerHTML = [
+    { n: '🔥 ' + calcStreakFor(S.streaks.tasks || []), l: 'MIT streak' },
+    { n: '🔥 ' + calcStreakFor(S.streaks.training || []), l: 'Training streak' },
+    { n: '🔥 ' + calcStreakFor(S.streaks.journal || []), l: 'Journal streak' },
+  ].map(s => `<div class="stat-card"><div class="sn">${s.n}</div><div class="sl">${s.l}</div></div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// JOURNAL
+// ══════════════════════════════════════════════
+function renderJournal() {
+  const prompts = [
+    'What was your #1 win today?',
+    'What blocked you and how will you fix it?',
+    'What prompt pattern did you discover?',
+    'Rate your deep work focus 1–10 today.',
+    'What will you do differently tomorrow?',
+    'What are you grateful for right now?',
+  ];
+  document.getElementById('journalPrompts').innerHTML = prompts.map(p =>
+    `<div style="background:rgba(0,230,168,0.06);border:1px solid rgba(0,230,168,0.12);border-radius:8px;padding:0.6rem 0.75rem;font-size:12px;color:var(--t2);cursor:pointer;" onclick="openModal('addJournal','${encodeURIComponent(p)}')">${p}</div>`
+  ).join('');
+
+  const el = document.getElementById('journalList');
+  if (S.journalEntries.length === 0) {
+    el.innerHTML = `<div class="card" style="color:var(--t3);font-size:13px;text-align:center;padding:2rem">No journal entries yet. Start with a daily reflection.</div>`;
+    return;
+  }
+  el.innerHTML = [...S.journalEntries].reverse().map(e => `
+    <div class="journal-entry">
+      <div class="je-date">${formatDate(e.date)} · ${e.date}</div>
+      <div class="je-text">${escapeHtml(e.text)}</div>
+    </div>`).join('');
+}
+
+// ══════════════════════════════════════════════
+// MINDSET CHECK-IN — 2-3x/week gut-check, not a daily habit
+// ══════════════════════════════════════════════
+const MINDSET_QUESTIONS = [
+  { key: 'smart', icon: 'ti-target-arrow', label: '🎯 SMART Move', prompt: "What's the SMART thing / SMART move you did today?" },
+  { key: 'celebrate', icon: 'ti-confetti', label: '🎉 Celebration', prompt: 'What did you celebrate today?' },
+  { key: 'cold', icon: 'ti-snowflake', label: '🧊 Cold Mindset', prompt: 'Do you have a killer, cold mindset for success today?' },
+  { key: 'xtra', icon: 'ti-star', label: '⭐ The Xtra 1%', prompt: "What's the extra thing you did today that puts you in the top 1%?" },
+];
+
+// Number of check-ins logged within the current Mon–Sun week.
+function mindsetWeekCount() {
+  const { start, end } = getWeekRange(0);
+  return S.mindsetEntries.filter(e => {
+    const d = new Date(e.date);
+    return d >= start && d <= end;
+  }).length;
+}
+
+function mindsetEntryHtml(e) {
+  return `<div class="journal-entry">
+    <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+      <div class="je-date">${formatDate(e.date)} · ${e.date}</div>
+      <div style="display:flex;gap:4px;">
+        <button class="task-act-btn" onclick="openModal('editMindset','${e.id}')"><i class="ti ti-edit"></i></button>
+        <button class="task-act-btn" onclick="deleteMindsetEntry('${e.id}')"><i class="ti ti-trash"></i></button>
+      </div>
+    </div>
+    ${MINDSET_QUESTIONS.map(q => e[q.key] ? `
+      <div style="margin-top:8px;">
+        <div style="font-family:'Space Mono',monospace;font-size:9px;text-transform:uppercase;letter-spacing:0.06em;color:var(--t3);margin-bottom:2px;">${q.label}</div>
+        <div class="je-text">${escapeHtml(e[q.key])}</div>
+      </div>` : '').join('')}
+  </div>`;
+}
+
+function renderMindset() {
+  const weekCount = mindsetWeekCount();
+  document.getElementById('mindsetWeekBadge').textContent = `${weekCount}/3 this week`;
+  document.getElementById('mindsetWeekBadge').className = 'badge ' + (weekCount >= 3 ? 'badge-g' : weekCount >= 1 ? 'badge-o' : 'badge-w');
+
+  const sorted = [...S.mindsetEntries].sort((a, b) => b.date.localeCompare(a.date));
+  const lastEntry = sorted[0];
+  document.getElementById('mindsetStats').innerHTML = `
+    <div class="stat-card"><div class="sn">${S.mindsetEntries.length}</div><div class="sl">Total check-ins</div></div>
+    <div class="stat-card"><div class="sn">${weekCount}/3</div><div class="sl">This week</div></div>
+    <div class="stat-card"><div class="sn" style="font-size:15px;">${lastEntry ? formatDate(lastEntry.date) : '—'}</div><div class="sl">Last check-in</div></div>
+  `;
+
+  const el = document.getElementById('mindsetList');
+  el.innerHTML = sorted.length === 0
+    ? `<div style="color:var(--t3);font-size:13px;text-align:center;padding:2rem">No check-ins yet. Aim for 2-3 a week — it's a gut-check, not a chore.</div>`
+    : sorted.map(mindsetEntryHtml).join('');
+}
+
+// ══════════════════════════════════════════════
+// SUCCESSFUL MORNING ROUTINE — weekday-only habit checklist
+// ══════════════════════════════════════════════
+const MORNING_ITEMS = [
+  { id: 'wake', icon: 'ti-alarm', label: 'Rise at 7:30 — Same Time, Every Time' },
+  { id: 'gratitude', icon: 'ti-heart', label: 'Morning Gratitude' },
+  { id: 'focus', icon: 'ti-bolt', label: 'Focus on You' },
+  { id: 'breakfast', icon: 'ti-coffee', label: 'Quiet Breakfast' },
+  { id: 'plan', icon: 'ti-target', label: 'Plan Your Day' },
+];
+
+function isWeekday(dateStr) {
+  const dow = new Date(dateStr).getDay();
+  return dow >= 1 && dow <= 5;
+}
+
+function morningItemsDoneForDate(dateStr) {
+  return S.morningLog[dateStr] || [];
+}
+
+// Today's completion, or null on a weekend (routine doesn't apply).
+function morningTodayStatus() {
+  const t = today();
+  if (!isWeekday(t)) return null;
+  return { done: morningItemsDoneForDate(t).length, total: MORNING_ITEMS.length };
+}
+
+function calcMorningStreak() {
+  return calcWeekdayStreakFor(S.streaks.morning || []);
+}
+
+function toggleMorningItem(itemId) {
+  const t = today();
+  if (!isWeekday(t)) return;
+  if (!S.morningLog[t]) S.morningLog[t] = [];
+  const list = S.morningLog[t];
+  const idx = list.indexOf(itemId);
+  if (idx === -1) list.push(itemId); else list.splice(idx, 1);
+  const allDone = MORNING_ITEMS.every(it => list.includes(it.id));
+  if (allDone) {
+    if (!S.streaks.morning.includes(t)) S.streaks.morning.push(t);
+  } else {
+    S.streaks.morning = S.streaks.morning.filter(d => d !== t);
+  }
+  save(); renderMorning(); updateTopbar();
+  if (allDone) toast("You're ready. Go conquer this day. ⚔️");
+}
+
+// Weekday-only streak-dot strip (skips weekends entirely, unlike renderStreakDots).
+function morningStreakDotsHtml(count) {
+  const s = new Set(S.streaks.morning || []);
+  const todayStr = today();
+  const dots = [];
+  const d = new Date();
+  while (dots.length < count) {
+    const dow = d.getDay();
+    if (dow >= 1 && dow <= 5) {
+      const ds = d.toISOString().split('T')[0];
+      const cls = ds === todayStr ? 's-today' : s.has(ds) ? 's-on' : 's-off';
+      dots.unshift(`<div class="streak-dot ${cls}"></div>`);
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return dots.join('');
+}
+
+function renderMorning() {
+  const t = today();
+  const el = document.getElementById('morningContent');
+  const streak = calcMorningStreak();
+
+  if (!isWeekday(t)) {
+    el.innerHTML = `<div class="card" style="text-align:center;padding:2.5rem;">
+      <div style="font-size:32px;margin-bottom:8px;">🌴</div>
+      <div style="font-size:15px;font-weight:600;color:var(--t1);margin-bottom:6px;">Rest day — no pressure.</div>
+      <div style="font-size:13px;color:var(--t3);">Your Successful Morning Routine resumes Monday. Current streak: 🔥 ${streak} weekday${streak === 1 ? '' : 's'}.</div>
+    </div>`;
+    return;
+  }
+
+  const done = morningItemsDoneForDate(t);
+  const allDone = MORNING_ITEMS.every(it => done.includes(it.id));
+  el.innerHTML = `<div class="grid-2">
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><i class="ti ti-sunrise"></i> Today's Routine</div>
+        <span class="badge ${allDone ? 'badge-g' : 'badge-w'}">${done.length}/${MORNING_ITEMS.length}</span>
+      </div>
+      ${MORNING_ITEMS.map(it => `
+        <div class="task-item" onclick="toggleMorningItem('${it.id}')">
+          <div class="task-cb ${done.includes(it.id) ? 'done' : ''}"></div>
+          <div class="task-body"><div class="task-title"><i class="ti ${it.icon}" style="margin-right:6px;color:var(--t3);"></i>${it.label}</div></div>
+        </div>`).join('')}
+      ${allDone ? `<div style="margin-top:14px;padding:14px;background:linear-gradient(90deg,rgba(0,230,168,0.15),rgba(200,255,107,0.1));border:1px solid rgba(0,230,168,0.3);border-radius:12px;text-align:center;font-weight:700;color:var(--g);">You're ready. Go conquer this day. ⚔️</div>` : ''}
+    </div>
+    <div class="card">
+      <div class="card-head"><div class="card-title"><i class="ti ti-flame"></i> Streak</div></div>
+      <div class="sn" style="font-size:28px;">🔥 ${streak}</div>
+      <div class="sl" style="margin-bottom:10px;">weekday${streak === 1 ? '' : 's'} in a row</div>
+      <div class="streak-grid">${morningStreakDotsHtml(20)}</div>
+    </div>
+  </div>`;
+}
+
+// ══════════════════════════════════════════════
+// TRAINING
+// ══════════════════════════════════════════════
+function renderTraining() {
+  const total = PLAN.flatMap(p => p.weeks.flatMap(w => w.tasks)).length;
+  const done = S.trainingDone.length;
+  const weeksDone = PLAN.flatMap(p => p.weeks).filter(w => w.tasks.every(t => S.trainingDone.includes(t.id))).length;
+  document.getElementById('tr-done').textContent = `${done}/${total}`;
+  document.getElementById('tr-pct').textContent = trainingDonePct() + '%';
+  document.getElementById('tr-weeks').textContent = weeksDone;
+  document.getElementById('tr-streak').textContent = calcStreak();
+
+  document.getElementById('trainingContent').innerHTML = PLAN.map(phase => {
+    const pDone = phase.weeks.flatMap(w => w.tasks).filter(t => S.trainingDone.includes(t.id)).length;
+    const pTotal = phase.weeks.flatMap(w => w.tasks).length;
+    const pPct = Math.round((pDone/pTotal)*100);
+    return `<div style="margin-bottom:1.5rem;">
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:8px;">
+        <div style="width:4px;height:32px;border-radius:2px;background:${phase.color};flex-shrink:0;"></div>
+        <div>
+          <div style="font-size:15px;font-weight:600;color:var(--t1)">${phase.label} — ${phase.name}</div>
+          <div style="font-size:11px;color:var(--t3);margin-top:2px">${pDone}/${pTotal} tasks · ${pPct}%</div>
+        </div>
+        <div style="margin-left:auto;width:120px;"><div class="bar-track"><div class="bar-fill" style="width:${pPct}%;background:${phase.color}"></div></div></div>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:10px;">
+        ${phase.weeks.map(week => {
+          const wDone = week.tasks.filter(t => S.trainingDone.includes(t.id)).length;
+          const wTotal = week.tasks.length;
+          const wPct = Math.round((wDone/wTotal)*100);
+          const allDone = wDone === wTotal;
+          return `<div class="card" style="border-color:${allDone ? 'rgba(0,230,168,0.3)' : 'var(--t4)'}">
+            <div class="card-head" style="margin-bottom:8px;">
+              <div style="font-size:12px;font-weight:600;color:var(--t1)">${week.label} — ${week.title}</div>
+              <span class="badge ${allDone ? 'badge-g' : wPct > 0 ? 'badge-o' : 'badge-w'}">${allDone ? '✓ Done' : wPct + '%'}</span>
+            </div>
+            <div class="bar-track" style="margin-bottom:10px;"><div class="bar-fill" style="width:${wPct}%"></div></div>
+            ${week.tasks.map(task => `
+              <div class="task-item ${S.trainingDone.includes(task.id) ? 'done-item' : ''}" id="ttr-${task.id}" onclick="toggleTraining('${task.id}')">
+                <div class="task-cb ${S.trainingDone.includes(task.id) ? 'done' : ''}"></div>
+                <div class="task-body">
+                  <div class="task-title">${task.text}</div>
+                  <div class="task-meta">
+                    <span class="task-tag ${task.we ? 'tag-learn' : 'tag-deep'}">${task.day}</span>
+                    ${task.we ? '<span style="font-size:10px;color:var(--sky)">1h weekend</span>' : '<span style="font-size:10px;color:var(--t3)">2h weekday</span>'}
+                  </div>
+                </div>
+              </div>`).join('')}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleTraining(taskId) {
+  const done = S.trainingDone.includes(taskId);
+  if (done) { S.trainingDone = S.trainingDone.filter(id => id !== taskId); }
+  else {
+    S.trainingDone.push(taskId);
+    if (!S.streaks.training.includes(today())) S.streaks.training.push(today());
+  }
+  save();
+  const row = document.getElementById('ttr-' + taskId);
+  if (row) {
+    row.classList.toggle('done-item', !done);
+    row.querySelector('.task-cb')?.classList.toggle('done', !done);
+  }
+  renderTraining();
+  updateTopbar();
+  toast(!done ? '✓ Training task complete!' : 'Task unmarked');
+}
+
+// ══════════════════════════════════════════════
+// MODALS
+// ══════════════════════════════════════════════
+let currentModal = null;
+function openModal(type, param) {
+  currentModal = { type, param };
+  const box = document.getElementById('modalBox');
+  box.innerHTML = buildModal(type, param);
+  document.getElementById('modalBackdrop').classList.remove('hidden');
+}
+function closeModal() { document.getElementById('modalBackdrop').classList.add('hidden'); currentModal = null; }
+function closeModalOutside(e) { if (e.target.id === 'modalBackdrop') closeModal(); }
+
+function okrOptions() {
+  return S.okrs.map(o => `<option value="${o.id}">${escapeHtml(o.objective.substring(0,50))}</option>`).join('');
+}
+
+function buildModal(type, param) {
+  if (type === 'addTask' || type === 'editTask' || type === 'addBacklogTask') {
+    const t = type === 'editTask' ? S.tasks.find(t => t.id === param) : null;
+    const isBacklog = type === 'addBacklogTask' || (t && !t.date);
+    const modalLabel = t ? (t.date ? 'Edit Task' : 'Edit Backlog Item') : (type === 'addBacklogTask' ? 'New Backlog Item' : 'New Task');
+    return `<div class="modal-title"><i class="ti ti-${isBacklog ? 'inbox' : 'flame'}"></i>${modalLabel}</div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="mTaskTitle" placeholder="What needs to be done?" value="${t ? escapeHtml(t.title) : ''}"></div>
+      <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+        <input type="checkbox" id="mTaskBacklog" ${isBacklog ? 'checked' : ''} onchange="document.getElementById('mTaskDate').disabled=this.checked;document.getElementById('mTaskRepeat').disabled=this.checked;" style="width:14px;height:14px;cursor:pointer;">
+        <label for="mTaskBacklog" style="font-size:12px;color:var(--t2);cursor:pointer;">📥 No date yet — send to Backlog</label>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="mTaskDate" type="date" value="${t && t.date ? t.date : today()}" ${isBacklog ? 'disabled' : ''}></div>
+        <div class="form-group"><label class="form-label">Category</label>
+          <select class="form-input" id="mTaskCat">
+            ${['training','work','personal','health'].map(c => `<option value="${c}" ${t?.category===c?'selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}
+          </select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Priority</label>
+          <select class="form-input" id="mTaskMIT">
+            <option value="true" ${t?.mit!==false?'selected':''}>🔴 MIT (Most Important)</option>
+            <option value="false" ${t?.mit===false?'selected':''}>Normal task</option>
+          </select></div>
+        <div class="form-group"><label class="form-label">Link to OKR</label>
+          <select class="form-input" id="mTaskOKR"><option value="">No OKR link</option>${okrOptions()}</select></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="mTaskScary" ${t?.scary ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          <label for="mTaskScary" style="font-size:12px;color:var(--t2);cursor:pointer;">😱 Scary — the one I keep avoiding</label>
+        </div>
+        <div class="form-group" style="display:flex;align-items:center;gap:8px;">
+          <input type="checkbox" id="mTaskFollowUp" ${t?.followUp ? 'checked' : ''} style="width:14px;height:14px;cursor:pointer;">
+          <label for="mTaskFollowUp" style="font-size:12px;color:var(--t2);cursor:pointer;">🔁 Follow-up — track until closed</label>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">Repeat</label>
+        <select class="form-input" id="mTaskRepeat" ${isBacklog ? 'disabled' : ''}>
+          <option value="none" ${(!t || !t.repeat || t.repeat==='none') ? 'selected' : ''}>One-time task</option>
+          <option value="daily" ${t?.repeat==='daily' ? 'selected' : ''}>Every day</option>
+          <option value="weekdays" ${t?.repeat==='weekdays' ? 'selected' : ''}>Weekdays only</option>
+          <option value="weekly" ${t?.repeat==='weekly' ? 'selected' : ''}>Weekly (same weekday)</option>
+        </select></div>
+      ${t ? followUpJournalHtml(t) : ''}
+      <div class="modal-actions">
+        ${t ? `<button class="btn btn-danger" onclick="deleteTask('${t.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveTask('${t ? t.id : ''}')">Save Task</button>
+      </div>`;
+  }
+  if (type === 'bulkAddBacklog') {
+    return `<div class="modal-title"><i class="ti ti-clipboard-text"></i>Bulk Add to Backlog</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:1rem;">Paste a list — one task per line. Bullets (-, *, •) are stripped automatically. Indent a line under a header (e.g. "Thales:") to prefix it automatically: "Thales – Performance platform". Remove plain title/date lines first — they'd be added as their own task otherwise.</div>
+      <div class="form-group"><label class="form-label">Paste your list</label>
+        <textarea class="form-input" id="mBulkText" rows="10" style="resize:vertical;font-family:'Space Mono',monospace;font-size:12px;" placeholder="Nisshi &amp; Solace PoV (Deck &amp; Tech Demo)
+Migration iPhone 16 Pro
+Thales:
+   Performance platform
+   Cybersecurity questions
+Groupama"></textarea></div>
+      <div class="form-group"><label class="form-label">Category for all of these</label>
+        <select class="form-input" id="mBulkCat">
+          ${['training','work','personal','health'].map(c => `<option value="${c}" ${c==='work'?'selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}
+        </select></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveBulkBacklog()">Add to Backlog</button>
+      </div>`;
+  }
+  if (type === 'addOKR' || type === 'editOKR') {
+    const o = type === 'editOKR' ? S.okrs.find(o => o.id === param) : null;
+    return `<div class="modal-title"><i class="ti ti-target"></i>${o ? 'Edit Objective' : 'New Objective'}</div>
+      <div class="form-group"><label class="form-label">Objective</label><input class="form-input" id="mObjText" placeholder="What do you want to achieve?" value="${o ? escapeHtml(o.objective) : ''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Category</label>
+          <select class="form-input" id="mObjCat">
+            ${['training','work','personal','health'].map(c => `<option value="${c}" ${o?.category===c?'selected':''}>${c.charAt(0).toUpperCase()+c.slice(1)}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Color</label>
+          <select class="form-input" id="mObjColor">
+            <option value="#00E6A8" ${(!o||o.color==='#00E6A8')?'selected':''}>Green (Training)</option>
+            <option value="#4DA3FF" ${o?.color==='#4DA3FF'?'selected':''}>Sky (Work)</option>
+            <option value="#C8FF6B" ${o?.color==='#C8FF6B'?'selected':''}>Bright (Personal)</option>
+            <option value="#F5B83D" ${o?.color==='#F5B83D'?'selected':''}>Orange (Health)</option>
+          </select></div>
+      </div>
+      <div class="modal-actions">
+        ${o ? `<button class="btn btn-danger" onclick="deleteOKR('${o.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveOKR('${o ? o.id : ''}')">Save</button>
+      </div>`;
+  }
+  if (type === 'addKR' || type === 'updateKR') {
+    const [okrId, krId] = (param || '').split('|');
+    const okr = S.okrs.find(o => o.id === okrId);
+    const kr = krId ? okr?.krs.find(k => k.id === krId) : null;
+    return `<div class="modal-title"><i class="ti ti-chart-line"></i>${kr ? 'Update Key Result' : 'New Key Result'}</div>
+      ${okr ? `<div style="font-size:12px;color:var(--t3);margin-bottom:1rem;">For: ${okr.objective}</div>` : ''}
+      <div class="form-group"><label class="form-label">Key Result</label><input class="form-input" id="mKRText" placeholder="Specific measurable outcome..." value="${kr ? escapeHtml(kr.text) : ''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Current</label><input class="form-input" id="mKRCurrent" type="number" placeholder="0" value="${kr ? kr.current : 0}"></div>
+        <div class="form-group"><label class="form-label">Target</label><input class="form-input" id="mKRTarget" type="number" placeholder="100" value="${kr ? kr.target : 100}"></div>
+        <div class="form-group"><label class="form-label">Unit</label><input class="form-input" id="mKRUnit" placeholder="tasks, %, projects..." value="${kr ? escapeHtml(kr.unit) : ''}"></div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveKR('${okrId}','${krId||''}')">Save</button>
+      </div>`;
+  }
+  if (type === 'addStep' || type === 'editStep') {
+    const [okrId, stepId] = (param || '').split('|');
+    const okr = S.okrs.find(o => o.id === okrId);
+    const step = stepId ? okr?.steps.find(s => s.id === stepId) : null;
+    return `<div class="modal-title"><i class="ti ti-list-check"></i>${step ? 'Edit Step' : 'New Plan Step'}</div>
+      ${okr ? `<div style="font-size:12px;color:var(--t3);margin-bottom:1rem;">For: ${escapeHtml(okr.objective)}</div>` : ''}
+      <div class="form-group"><label class="form-label">Step</label><input class="form-input" id="mStepText" placeholder="A concrete action to move this OKR forward..." value="${step ? escapeHtml(step.text) : ''}"></div>
+      <div class="modal-actions">
+        ${step ? `<button class="btn btn-danger" onclick="deleteStep('${okrId}','${step.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveStep('${okrId}','${stepId||''}')">Save</button>
+      </div>`;
+  }
+  if (type === 'addBlock' || type === 'editBlock') {
+    const b = type === 'editBlock' ? S.blocks.find(b => b.id === param) : null;
+    return `<div class="modal-title"><i class="ti ti-clock"></i>${b ? 'Edit Time Block' : 'New Time Block'}</div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="mBTitle" placeholder="What will you work on?" value="${b ? escapeHtml(b.title) : ''}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Start</label><input class="form-input" id="mBStart" type="time" value="${b ? b.start : '09:00'}"></div>
+        <div class="form-group"><label class="form-label">End</label><input class="form-input" id="mBEnd" type="time" value="${b ? b.end : '11:00'}"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Type</label>
+          <select class="form-input" id="mBType">
+            ${['deep','shallow','break','personal'].map(t2 => `<option value="${t2}" ${b?.type===t2?'selected':''}>${blockTypeLabel(t2)}</option>`).join('')}
+          </select></div>
+        <div class="form-group"><label class="form-label">Day</label>
+          <select class="form-input" id="mBDay">
+            <option value="weekday" ${(!b||b.day==='weekday')?'selected':''}>Weekday</option>
+            <option value="weekend" ${b?.day==='weekend'?'selected':''}>Weekend</option>
+          </select></div>
+      </div>
+      <div class="modal-actions">
+        ${b ? `<button class="btn btn-danger" onclick="deleteBlock('${b.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveBlock('${b ? b.id : ''}')">Save</button>
+      </div>`;
+  }
+  if (type === 'addDayBlock' || type === 'editDayBlock') {
+    // param is either "dateStr", "dateStr|blockId" (edit), or "dateStr||taskId"
+    // (quick-schedule from the "Daily MITs not yet scheduled" list).
+    const parts = (param || '').split('|');
+    const dateStr = parts[0];
+    const blockId = parts[1] || '';
+    const prefillTaskId = parts[2] || '';
+    const dayBlocks = effectiveBlocksForDate(dateStr);
+    const b = blockId ? dayBlocks.find(x => x.id === blockId) : null;
+    const prefillTask = !b && prefillTaskId ? S.tasks.find(t => t.id === prefillTaskId) : null;
+    const dayTasks = S.tasks.filter(t => t.date === dateStr);
+    return `<div class="modal-title"><i class="ti ti-calendar"></i>${b ? 'Edit block' : 'New exception'}</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:1rem;">This applies only to the date below — pick any day (today, in a month, whenever). The weekday/weekend template stays the same.</div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="mBDate" type="date" value="${dateStr}" onchange="onBlockDateChange(this.value)"></div>
+      <div class="form-group"><label class="form-label">Title</label><input class="form-input" id="mBTitle" placeholder="What will you work on?" value="${b ? escapeHtml(b.title) : (prefillTask ? escapeHtml(prefillTask.title) : '')}"></div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Start</label><input class="form-input" id="mBStart" type="time" value="${b ? b.start : '09:00'}"></div>
+        <div class="form-group"><label class="form-label">End</label><input class="form-input" id="mBEnd" type="time" value="${b ? b.end : '11:00'}"></div>
+      </div>
+      <div class="form-group"><label class="form-label">Type</label>
+        <select class="form-input" id="mBType">
+          ${['deep','shallow','break','personal'].map(t2 => `<option value="${t2}" ${b?.type===t2?'selected':''}>${blockTypeLabel(t2)}</option>`).join('')}
+        </select></div>
+      <div class="form-group"><label class="form-label">Link to Task / MIT</label>
+        <select class="form-input" id="mBTaskLink">
+          <option value="">No task linked</option>
+          ${dayTasks.map(t => `<option value="${t.id}" ${(b ? b.taskLink===t.id : prefillTaskId===t.id) ? 'selected' : ''}>${t.mit ? '★ ' : ''}${escapeHtml(t.title)}</option>`).join('')}
+        </select>
+        <div id="mBTaskLinkHint" style="font-size:11px;color:var(--t3);margin-top:5px;${dayTasks.length === 0 ? '' : 'display:none;'}">No Daily MITs for this date yet. <a href="#" onclick="closeModal();openModal('addTask');return false;">Add one →</a></div>
+      </div>
+      <div class="modal-actions">
+        ${b ? `<button class="btn btn-danger" onclick="deleteDayBlock('${dateStr}','${b.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveDayBlock('${dateStr}','${b ? b.id : ''}')">Save</button>
+      </div>`;
+  }
+  if (type === 'addJournal') {
+    const prompt = param ? decodeURIComponent(param) : '';
+    return `<div class="modal-title"><i class="ti ti-writing"></i>Journal Entry</div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="mJDate" type="date" value="${today()}"></div>
+      <div class="form-group"><label class="form-label">Reflection</label>
+        <textarea class="form-input" id="mJText" rows="5" placeholder="${prompt || 'What happened today? What did you learn? What will you improve?'}" style="resize:vertical"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveJournal()">Save Entry</button>
+      </div>`;
+  }
+  if (type === 'addMindset' || type === 'editMindset') {
+    const e = type === 'editMindset' ? S.mindsetEntries.find(e => e.id === param) : null;
+    return `<div class="modal-title"><i class="ti ti-bulb"></i>${e ? 'Edit' : 'New'} Mindset Check-in</div>
+      <div style="font-size:11px;color:var(--t3);margin-bottom:1rem;">Answer what's relevant today — you don't need to fill in every question.</div>
+      <div class="form-group"><label class="form-label">Date</label><input class="form-input" id="mMDate" type="date" value="${e ? e.date : today()}"></div>
+      ${MINDSET_QUESTIONS.map(q => `
+        <div class="form-group"><label class="form-label">${q.label}</label>
+          <textarea class="form-input" id="mM_${q.key}" rows="2" placeholder="${q.prompt}" style="resize:vertical">${e ? escapeHtml(e[q.key] || '') : ''}</textarea></div>
+      `).join('')}
+      <div class="modal-actions">
+        ${e ? `<button class="btn btn-danger" onclick="deleteMindsetEntry('${e.id}');closeModal()">Delete</button>` : ''}
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveMindsetEntry('${e ? e.id : ''}')">Save Check-in</button>
+      </div>`;
+  }
+  if (type === 'addReflection') {
+    return `<div class="modal-title"><i class="ti ti-calendar-week"></i>Weekly Reflection</div>
+      <div style="font-size:12px;color:var(--t3);margin-bottom:1rem">Week ${sprintWeek()} of 12</div>
+      <div class="form-group"><label class="form-label">🏆 Wins this week</label>
+        <textarea class="form-input" id="mRWins" rows="3" placeholder="What went well? What are you proud of?"></textarea></div>
+      <div class="form-group"><label class="form-label">🔧 What to improve</label>
+        <textarea class="form-input" id="mRImprove" rows="3" placeholder="What blocked you? What will you do differently?"></textarea></div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveReflection()">Save Reflection</button>
+      </div>`;
+  }
+  if (type === 'settings') {
+    return `<div class="modal-title"><i class="ti ti-settings"></i>Settings</div>
+      <div class="form-group"><label class="form-label">Your name</label><input class="form-input" id="mSetName" value="${escapeHtml(S.userName)}"></div>
+      <div class="form-group"><label class="form-label">Sprint start date</label><input class="form-input" id="mSetSprint" type="date" value="${S.sprintStart}"></div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--t4)">
+        <label class="form-label">Backup</label>
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:5px;">
+          <button class="btn btn-ghost" onclick="exportData()"><i class="ti ti-download" style="font-size:12px;margin-right:4px;"></i>Export data</button>
+          <button class="btn btn-ghost" onclick="document.getElementById('mImportFile').click()"><i class="ti ti-upload" style="font-size:12px;margin-right:4px;"></i>Import data</button>
+          <input type="file" id="mImportFile" accept="application/json" style="display:none" onchange="importData(event)">
+        </div>
+      </div>
+      <div style="margin-top:1rem;padding-top:1rem;border-top:1px solid var(--t4)">
+        <button class="btn btn-danger" onclick="if(confirm('Reset all data?')){localStorage.removeItem('${SK}');location.reload();}">Reset all data</button>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+        <button class="btn btn-primary" onclick="saveSettings()">Save</button>
+      </div>`;
+  }
+  return '';
+}
+
+// ── SAVE HANDLERS ──────────────────────────────
+function saveTask(id) {
+  const title = document.getElementById('mTaskTitle')?.value.trim();
+  if (!title) { alert('Please enter a task title'); return; }
+  const isBacklog = document.getElementById('mTaskBacklog')?.checked;
+  const date = isBacklog ? '' : (document.getElementById('mTaskDate').value || today());
+  const repeat = isBacklog ? 'none' : (document.getElementById('mTaskRepeat')?.value || 'none');
+  const scary = document.getElementById('mTaskScary')?.checked || false;
+  const followUp = document.getElementById('mTaskFollowUp')?.checked || false;
+  if (id) {
+    const t = S.tasks.find(t => t.id === id);
+    if (t) {
+      t.title = title; t.date = date; t.category = document.getElementById('mTaskCat').value; t.mit = document.getElementById('mTaskMIT').value === 'true'; t.okrLink = document.getElementById('mTaskOKR').value; t.repeat = repeat; t.scary = scary;
+      t.followUp = followUp;
+      if (followUp && !t.followUpLog) t.followUpLog = [];
+    }
+  } else {
+    S.tasks.push({ id: uid(), title, date, category: document.getElementById('mTaskCat').value, mit: document.getElementById('mTaskMIT').value === 'true', okrLink: document.getElementById('mTaskOKR').value, repeat, done: false, scary, followUp, closed: false, followUpLog: [] });
+  }
+  save(); closeModal(); renderPage(currentPage); updateTopbar(); toast(isBacklog ? 'Added to backlog ✓' : 'Task saved ✓');
+}
+
+// ── FOLLOW-UP: open/closed status + a timestamped log, independent of the
+// task's daily "done" checkbox, so a task can be worked on repeatedly and
+// still show as tracked until it's genuinely resolved. ──
+function followUpJournalHtml(t) {
+  if (!t.followUp) return '';
+  const log = t.followUpLog || [];
+  const entries = log.length === 0
+    ? `<div style="font-size:12px;color:var(--t3);padding:4px 0;">No updates logged yet.</div>`
+    : [...log].reverse().map(e => `
+        <div style="padding:6px 0;border-bottom:1px solid rgba(255,255,255,0.06);">
+          <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--t3);margin-bottom:2px;">${formatDate(e.date)}</div>
+          <div style="font-size:12px;color:var(--t2);">${escapeHtml(e.text)}</div>
+        </div>`).join('');
+  return `<div class="form-group" style="background:rgba(77,163,255,0.06);border:1px solid rgba(77,163,255,0.2);border-radius:10px;padding:0.75rem;">
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
+      <span class="${t.closed ? 'closed-badge' : 'followup-badge'}">${t.closed ? '✓ Closed' : '🔁 Follow-up open'}</span>
+      <button class="icon-btn" style="padding:3px 9px;font-size:11px;" onclick="toggleFollowUpClosed('${t.id}')">${t.closed ? 'Reopen' : 'Close it'}</button>
+    </div>
+    <div style="max-height:140px;overflow-y:auto;margin-bottom:8px;">${entries}</div>
+    <div style="display:flex;gap:6px;">
+      <input class="form-input" id="mFollowUpNote" placeholder="Log an update (e.g. called, waiting on reply)…" style="font-size:12px;">
+      <button class="icon-btn" style="padding:7px 10px;flex-shrink:0;" onclick="addFollowUpNote('${t.id}')"><i class="ti ti-plus"></i></button>
+    </div>
+  </div>`;
+}
+
+function addFollowUpNote(id) {
+  const input = document.getElementById('mFollowUpNote');
+  const text = input?.value.trim();
+  if (!text) return;
+  const t = S.tasks.find(t => t.id === id);
+  if (!t) return;
+  if (!t.followUpLog) t.followUpLog = [];
+  t.followUpLog.push({ date: today(), text });
+  save();
+  openModal('editTask', id); // re-render the modal so the new entry shows immediately
+}
+
+function toggleFollowUpClosed(id) {
+  const t = S.tasks.find(t => t.id === id);
+  if (!t) return;
+  t.closed = !t.closed;
+  save();
+  openModal('editTask', id);
+  renderPage(currentPage);
+  toast(t.closed ? 'Follow-up closed ✓' : 'Follow-up reopened');
+}
+
+function saveOKR(id) {
+  const text = document.getElementById('mObjText')?.value.trim();
+  if (!text) { alert('Please enter an objective'); return; }
+  if (id) {
+    const o = S.okrs.find(o => o.id === id);
+    if (o) { o.objective = text; o.category = document.getElementById('mObjCat').value; o.color = document.getElementById('mObjColor').value; }
+  } else {
+    S.okrs.push({ id: uid(), objective: text, category: document.getElementById('mObjCat').value, color: document.getElementById('mObjColor').value, krs: [], steps: [] });
+  }
+  save(); closeModal(); renderPage(currentPage); updateTopbar(); toast('OKR saved ✓');
+}
+
+function saveKR(okrId, krId) {
+  const text = document.getElementById('mKRText')?.value.trim();
+  if (!text) { alert('Please enter a key result'); return; }
+  const okr = S.okrs.find(o => o.id === okrId);
+  if (!okr) return;
+  if (krId) {
+    const kr = okr.krs.find(k => k.id === krId);
+    if (kr) { kr.text = text; kr.current = parseFloat(document.getElementById('mKRCurrent').value) || 0; kr.target = parseFloat(document.getElementById('mKRTarget').value) || 100; kr.unit = document.getElementById('mKRUnit').value; }
+  } else {
+    okr.krs.push({ id: uid(), text, current: parseFloat(document.getElementById('mKRCurrent').value) || 0, target: parseFloat(document.getElementById('mKRTarget').value) || 100, unit: document.getElementById('mKRUnit').value || '' });
+  }
+  save(); closeModal(); renderOKRs(); toast('Key result saved ✓');
+}
+
+function saveStep(okrId, stepId) {
+  const text = document.getElementById('mStepText')?.value.trim();
+  if (!text) { alert('Please enter a step'); return; }
+  const okr = S.okrs.find(o => o.id === okrId);
+  if (!okr) return;
+  if (!okr.steps) okr.steps = [];
+  if (stepId) {
+    const step = okr.steps.find(s => s.id === stepId);
+    if (step) step.text = text;
+  } else {
+    okr.steps.push({ id: uid(), text, done: false });
+  }
+  save(); closeModal(); renderOKRs(); toast('Step saved ✓');
+}
+
+function saveBlock(id) {
+  const title = document.getElementById('mBTitle')?.value.trim();
+  if (!title) { alert('Please enter a title'); return; }
+  const data = { title, start: document.getElementById('mBStart').value, end: document.getElementById('mBEnd').value, type: document.getElementById('mBType').value, day: document.getElementById('mBDay').value };
+  if (id) { const b = S.blocks.find(b => b.id === id); if (b) Object.assign(b, data); }
+  else S.blocks.push({ id: uid(), ...data });
+  save(); closeModal(); renderPage(currentPage); toast('Block saved ✓');
+}
+
+function saveJournal() {
+  const text = document.getElementById('mJText')?.value.trim();
+  if (!text) { alert('Please write something'); return; }
+  S.journalEntries.push({ id: uid(), date: document.getElementById('mJDate').value, text });
+  if (!S.streaks.journal.includes(today())) S.streaks.journal.push(today());
+  save(); closeModal(); renderJournal(); toast('Journal entry saved ✓');
+}
+
+function saveMindsetEntry(id) {
+  const data = { date: document.getElementById('mMDate')?.value || today() };
+  let hasContent = false;
+  MINDSET_QUESTIONS.forEach(q => {
+    const v = document.getElementById('mM_' + q.key)?.value.trim() || '';
+    data[q.key] = v;
+    if (v) hasContent = true;
+  });
+  if (!hasContent) { alert('Answer at least one question.'); return; }
+  if (id) {
+    const e = S.mindsetEntries.find(e => e.id === id);
+    if (e) Object.assign(e, data);
+  } else {
+    S.mindsetEntries.push({ id: uid(), ...data });
+  }
+  save(); closeModal(); renderMindset(); updateTopbar(); toast('Mindset check-in saved ✓');
+}
+
+function deleteMindsetEntry(id) {
+  if (!confirm('Delete this check-in?')) return;
+  S.mindsetEntries = S.mindsetEntries.filter(e => e.id !== id);
+  save(); renderMindset(); updateTopbar(); toast('Check-in deleted');
+}
+
+function saveReflection() {
+  const wins = document.getElementById('mRWins')?.value.trim();
+  const improve = document.getElementById('mRImprove')?.value.trim();
+  if (!wins && !improve) { alert('Please fill in at least one field'); return; }
+  S.reflections.push({ id: uid(), week: sprintWeek(), date: today(), wins, improve });
+  save(); closeModal(); renderWeekly(); toast('Reflection saved ✓');
+}
+
+function saveSettings() {
+  S.userName = document.getElementById('mSetName')?.value.trim() || S.userName;
+  S.sprintStart = document.getElementById('mSetSprint')?.value || S.sprintStart;
+  save(); closeModal(); updateTopbar(); renderPage(currentPage); toast('Settings saved ✓');
+}
+
+// ══════════════════════════════════════════════
+// INIT
+// ══════════════════════════════════════════════
+load();
+seedDefaults();
+runDailyRollover();
+updateTopbar();
+renderDashboard();
+
+// Settings button in topbar
+document.getElementById('topbar').insertAdjacentHTML('beforeend',
+  `<button class="tb-btn" onclick="openModal('settings')"><i class="ti ti-settings" style="font-size:12px"></i></button>`
+);
+</script>
+</body>
+</html>
